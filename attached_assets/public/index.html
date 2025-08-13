@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Listing Agent</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header>
+    <h1>AI Listing Agent</h1>
+    <nav>
+      <button class="nav-btn" data-view="generator">Generator</button>
+      <button class="nav-btn" data-view="history">History</button>
+      <button class="nav-btn" data-view="billing">Billing & Usage</button>
+    </nav>
+    <div class="account">
+      <span id="creditsBadge">Credits: —</span>
+      <span id="meEmail">Guest</span>
+      <button id="btnLogin">Log in</button>
+      <button id="btnLogout" hidden>Log out</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- GENERATOR -->
+    <section id="view-generator" class="view active">
+      <section class="form">
+        <h2>Property Basics</h2>
+        <div class="grid">
+          <label>Address <input id="address" placeholder="123 Oak St, Austin, TX" /></label>
+          <label>Type
+            <select id="type">
+              <option value="single_family">Single-family</option>
+              <option value="condo">Condo</option>
+              <option value="multi_family">Multi-family</option>
+              <option value="land">Land</option>
+            </select>
+          </label>
+          <label>Beds <input id="beds" type="number" min="0" step="1" /></label>
+          <label>Baths <input id="baths" type="number" min="0" step="0.5" /></label>
+          <label>Sq Ft <input id="sqft" type="number" min="0" step="1" /></label>
+          <label>Lot Size (acres) <input id="lot" type="number" min="0" step="0.01" /></label>
+          <label>Year Built <input id="year" type="number" min="1800" max="2100" /></label>
+          <label>Parking <input id="parking" placeholder="2-car garage" /></label>
+          <label>HOA <input id="hoa" placeholder="None or $/mo" /></label>
+          <label>School District <input id="school" placeholder="Austin ISD" /></label>
+        </div>
+
+        <h2>Highlights & Upgrades</h2>
+        <textarea id="highlights" rows="5" placeholder="Updated kitchen with quartz counters; New roof (2023); Covered patio..."></textarea>
+
+        <h2>Style</h2>
+        <div class="brand-row"><label class="toggle"><input type="checkbox" id="rememberStyle" /> Remember my style</label><button id="applyPreset" class="mini">Load preset</button><button id="savePreset" class="mini">Save preset</button></div>
+        <div class="grid">
+          <label>Voice
+            <select id="voice">
+              <option value="neutral">Neutral</option>
+              <option value="conversational">Conversational</option>
+              <option value="luxury">Luxury</option>
+              <option value="investor">Investor-friendly</option>
+            </select>
+          </label>
+          <label>Reading Level
+            <select id="reading">
+              <option value="standard">Standard</option>
+              <option value="simple">Simple</option>
+            </select>
+          </label>
+          <label>Length
+            <select id="length">
+              <option value="mls">MLS (~800–1000 chars)</option>
+              <option value="website">Website (150–250 words)</option>
+            </select>
+          </label>
+          <label>Local Keywords <input id="keywords" placeholder="South Austin, cul-de-sac" /></label>
+        </div>
+
+        <label class="toggle">
+          <input type="checkbox" id="fh" checked /> Fair Housing / claims check
+        </label>
+
+        <button id="generate">Generate Listing</button>
+        <div id="status" class="status" hidden>Composing…</div>
+      </section>
+
+      <section id="results" class="results" hidden>
+        <div class="tabs">
+          <button data-tab="mls" class="active">MLS Description <small id="charCount"></small></button>
+          <button data-tab="bullets">Highlights</button>
+          <button data-tab="social">Social Caption</button>
+        </div>
+        <div class="panes">
+          <div id="pane-mls" class="pane active">
+            <pre id="out-mls"></pre>
+            <button data-copy="out-mls">Copy</button>
+            <button data-download="mls">Download .txt</button>
+          </div>
+          <div id="pane-bullets" class="pane">
+            <ul id="out-bullets"></ul>
+            <button data-copy="out-bullets">Copy</button>
+            <button data-download="bullets">Download .txt</button>
+          </div>
+          <div id="pane-social" class="pane">
+            <pre id="out-social"></pre>
+            <button data-copy="out-social">Copy</button>
+            <button data-download="social">Download .txt</button>
+          </div>
+        </div>
+
+        <div id="flags" class="flags"></div>
+        <div class="row end"><button id="btnEmail">Email me the package</button> <button id="btnPdf">Download PDF</button></div>
+      </section>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="view-history" class="view">
+      <h2>History</h2>
+      <p class="muted">Sign in to see your last 20 generations.</p>
+      <ul id="historyList"></ul>
+    </section>
+
+    <!-- BILLING & USAGE -->
+    <section id="view-billing" class="view">
+      <h2>Buy Credits</h2>
+      <p>Select a pack and you’ll be redirected to Stripe Checkout.</p>
+      <div class="grid grid-3">
+        <div class="card"><h3>Starter</h3><p>20 credits</p><button data-pack="starter">Buy with Stripe</button></div>
+        <div class="card"><h3>Pro</h3><p>50 credits</p><button data-pack="pro">Buy with Stripe</button></div>
+        <div class="card"><h3>Team</h3><p>200 credits</p><button data-pack="team">Buy with Stripe</button></div>
+      </div>
+
+      <h2>Usage</h2>
+      <div id="usage">
+        <div class="usage-cards">
+          <div class="mini">Jobs <span id="uJobs">—</span></div>
+          <div class="mini">Prompt tokens <span id="uTP">—</span></div>
+          <div class="mini">Output tokens <span id="uTC">—</span></div>
+        </div>
+        <h3>Recent Purchases</h3>
+        <ul id="usageEvents"></ul>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <small>Fair Housing safe-by-default. No data is sold. © 2025</small>
+  </footer>
+
+  <!-- Auth Modal -->
+  <dialog id="authModal">
+    <form method="dialog" id="authForm" class="auth">
+      <h3 id="authTitle">Log in</h3>
+      <label>Email <input id="authEmail" type="email" required /></label>
+      <label>Password <input id="authPassword" type="password" required /></label>
+      <div class="row">
+        <button value="cancel">Cancel</button>
+        <button id="authAction">Log in</button>
+      </div>
+      <p class="muted" id="authToggle">New here? <a href="#" data-mode="signup">Create account</a></p>
+      <div class="error" id="authError" hidden></div>
+    </form>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>

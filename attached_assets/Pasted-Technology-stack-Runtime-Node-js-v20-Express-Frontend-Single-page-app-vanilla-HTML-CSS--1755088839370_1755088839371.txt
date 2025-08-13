@@ -1,0 +1,46 @@
+Technology stack
+	•	Runtime: Node.js (v20) + Express
+	•	Frontend: Single-page app (vanilla HTML/CSS/JS)
+	•	DB: SQLite via better-sqlite3
+	•	Auth: Email + password (bcryptjs) with cookie sessions
+	•	Payments: Stripe Checkout (+ webhook fulfillment)
+	•	AI SDK: OpenAI (Responses API with fallback to Chat Completions)
+	•	Extras: pdfkit (PDF export), Resend (optional email), Helmet, express-rate-limit
+
+Main features
+	•	Property→Copy generator: MLS description, 5–7 bullets, social caption
+	•	Style controls: voice (neutral/conversational/luxury/investor), reading level, length (MLS vs. website), local keywords
+	•	Fair Housing guardrails: second pass flags risky phrases + one-click “Apply rewrite”
+	•	Exports: copy buttons, .txt downloads, PDF flyer, optional email my results
+	•	Accounts & credits: signup/login, credits badge, credit gating on generate
+	•	Billing: Stripe credit packs (20/50/200), webhook adds credits automatically
+	•	History & usage: last 20 runs, token totals, recent purchases
+	•	Brand presets: save/load voice, reading level, keywords per account
+	•	MLS-ready architecture: datasource interface to plug an MLS feed later (manual input for now)
+
+How the AI assistance works
+	•	Provider: OpenAI API
+	•	Strategy: two-stage prompting
+	1.	Generation call: system prompt enforces tone/length/“no fabrication,” user prompt passes structured facts + style; model returns strict JSON (description_mls, bullets[], social_caption).
+	2.	Compliance call: reviews outputs for Fair Housing/puffery/unverifiable claims and returns a flags[] array with suggested rewrites.
+	•	Models: configurable via MODEL_NAME (defaults to gpt-5) and USE_RESPONSES_API=true|false
+
+User interface
+	•	Web form (SPA) with sections: Property Basics, Highlights & Upgrades, Style, Guardrail toggle
+	•	Results panel with tabs (MLS / Highlights / Social), live char counter, copy/download
+	•	Top nav: Generator | History | Billing & Usage
+	•	Auth modal for sign up / log in
+	•	Onboarding checklist for first-time users
+
+Requirements & constraints
+	•	Environment variables (.env):
+	•	OPENAI_API_KEY, SESSION_SECRET
+	•	STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+	•	CREDIT_PRICE_20, CREDIT_PRICE_50, CREDIT_PRICE_200
+	•	STRIPE_SUCCESS_URL, STRIPE_CANCEL_URL
+	•	Optional email: RESEND_API_KEY, SENDER_EMAIL
+	•	Tunables: FREE_CREDITS_EMAIL, FREE_CREDITS_GUEST, RATE_LIMIT_PER_MIN, MODEL_NAME, USE_RESPONSES_API
+	•	Stripe webhook: must hit /stripe/webhook with raw body (route is already set before express.json()).
+	•	Port: 3000 (Replit auto-exposes)
+	•	Persistence: SQLite at data/app.db (included in .gitignore)
+	•	Styling: lightweight dark theme; no external CSS frameworks to keep load fast

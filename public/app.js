@@ -229,7 +229,7 @@ async function refreshCredits() {
 
 // Utils
 function num(v) { const n = Number(v); return Number.isFinite(n) ? n : null; }
-function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",""":"&quot;","'":"&#039;" }[c])); }
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;" }[c])); }
 
 // INIT
 refreshMe();

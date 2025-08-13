@@ -52,3 +52,4 @@ npm run dev
 
 ## Email (Resend)
 - Add `RESEND_API_KEY` and `SENDER_EMAIL` to `.env` to enable the Email button.
+# AI-Listing-Agent

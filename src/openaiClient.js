@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 
 export const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-export const MODEL_NAME = process.env.MODEL_NAME || "gpt-5";
+export const MODEL_NAME = process.env.MODEL_NAME || "gpt-4o";
 export const USE_RESPONSES_API = String(process.env.USE_RESPONSES_API || "true") === "true";
 
 export async function runModel(messages, responseFormat = "json_object") {

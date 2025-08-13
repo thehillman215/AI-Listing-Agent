@@ -6,3 +6,19 @@ packages = ["unzip"]
 [[ports]]
 localPort = 3000
 externalPort = 80
+
+[workflows]
+runButton = "Run"
+
+[[workflows.workflow]]
+name = "Run"
+author = 44040350
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run init:db"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm start"

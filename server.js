@@ -230,4 +230,4 @@ function escapeHtml(s) {
 app.get("/health", (req, res) => res.json({ ok: true }));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`AI Listing Agent v1.1 on http://localhost:${PORT}`));
+app.listen(PORT, "0.0.0.0", () => console.log(`AI Listing Agent v1.1 on http://0.0.0.0:${PORT}`));

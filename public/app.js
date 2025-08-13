@@ -282,9 +282,9 @@ renderFlags = function(flags) {
   if (!flags.length) { el.innerHTML = "<div class='ok'>All clear ✓</div>"; return; }
   el.innerHTML = "<h3>Potential issues</h3>" + flags.map(f => {
     const btn = `<button class="mini" data-apply-rewrite data-original="${escapeHtml(f.original||'')}" data-suggest="${escapeHtml(f.suggest||'')}">Apply rewrite</button>`;
-    return `<div class="flag"><strong>${f.type}</strong>: “${escapeHtml(f.original)}” → <em>${escapeHtml(f.suggest || "")}</em> ${btn}<br><small>${escapeHtml(f.note || "")}</small></div>`;
+    return `<div class="flag"><strong>${f.type}</strong>: "${escapeHtml(f.original)}" → <em>${escapeHtml(f.suggest || "")}</em> ${btn}<br><small>${escapeHtml(f.note || "")}</small></div>`;
   }).join("");
-}
+};
 
 // EMAIL & PDF
 $("#btnPdf").addEventListener("click", async () => {

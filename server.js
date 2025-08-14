@@ -154,6 +154,38 @@ app.get("/credits", (req, res) => {
   const email = req.session?.user?.email || null;
   const c = email ? getCredits(email) : null;
   res.json({ credits: c });
+
+function mlsEnabled() { return String(process.env.MLS_SANDBOX_ENABLED || "false") === "true"; }
+app.get("/mls/providers", (req, res) => {
+  if (!mlsEnabled()) return res.json({ providers: [] });
+  const conn = req.session?.mls || null;
+  res.json({ providers: [{ id: "sandbox", name: "Sandbox", connected: !!(conn && conn.provider === "sandbox") }] });
+});
+app.get("/mls/status", (req, res) => {
+  if (!mlsEnabled()) return res.status(404).json({ error: "MLS disabled" });
+  const conn = req.session?.mls || null;
+  res.json({ connected: !!conn, provider: conn?.provider || null });
+});
+app.post("/mls/connect", (req, res) => {
+  if (!mlsEnabled()) return res.status(404).json({ error: "MLS disabled" });
+  req.session.mls = { provider: "sandbox", connected_at: Date.now() };
+  res.json({ ok: true });
+});
+app.post("/mls/disconnect", (req, res) => {
+  if (!mlsEnabled()) return res.status(404).json({ error: "MLS disabled" });
+  req.session.mls = null;
+  res.json({ ok: true });
+});
+app.post("/mls/fetch", async (req, res) => {
+  if (!mlsEnabled()) return res.status(404).json({ error: "MLS disabled" });
+  const conn = req.session?.mls || null;
+  if (!conn) return res.status(401).json({ error: "Connect Sandbox first" });
+  const { mls_number } = req.body || {};
+  if (!mls_number) return res.status(400).json({ error: "mls_number required" });
+  const { TEST123 } = await import("./src/mls/fixtures.js");
+  if (mls_number !== "TEST123") return res.status(404).json({ error: "Not found" });
+  res.json({ record: TEST123 });
+});
 });
 
 app.get("/history", async (req, res) => {

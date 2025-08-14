@@ -343,3 +343,44 @@ async function maybeShowOnboarding() {
   }
 }
 maybeShowOnboarding();
+
+async function ensureSandbox() {
+  const r = await fetch("/mls/providers"); const data = await r.json();
+  return Array.isArray(data.providers) && data.providers.find(p => p.id === "sandbox");
+}
+document.getElementById("mlsNumber") && (document.getElementById("mlsNumber").value = localStorage.getItem("lastMLS") || "TEST123");
+document.getElementById("mlsNumber") && document.getElementById("mlsNumber").addEventListener("change", (e) => localStorage.setItem("lastMLS", e.target.value));
+document.getElementById("btnPrefill") && document.getElementById("btnPrefill").addEventListener("click", async () => {
+  try {
+    const prov = await ensureSandbox();
+    if (!prov) return alert("MLS Sandbox is disabled. Set MLS_SANDBOX_ENABLED=true");
+    if (!prov.connected) {
+      const c = await fetch("/mls/connect", { method: "POST" });
+      if (!c.ok) return alert("Could not connect MLS Sandbox");
+    }
+    const mls = (document.getElementById("mlsNumber").value || "TEST123").trim();
+    const r = await fetch("/mls/fetch", {
+      method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ mls_number: mls })
+    });
+    const data = await r.json();
+    if (!r.ok) return alert(data?.error || "MLS fetch failed");
+    const rec = data.record || {};
+    document.getElementById("address").value = rec.address || "";
+    document.getElementById("type").value = "Single-family";
+    document.getElementById("beds").value = rec.beds ?? "";
+    document.getElementById("baths").value = rec.baths ?? "";
+    document.getElementById("sqft").value = rec.sqft ?? "";
+    document.getElementById("lot").value = rec.lot_size ?? "";
+    document.getElementById("year").value = rec.year_built ?? "";
+    document.getElementById("parking").value = rec.parking || "";
+    document.getElementById("hoa").value = rec.hoa || "";
+    document.getElementById("school").value = rec.school_district || "";
+    const hl = (rec.highlights || []).join("; ");
+    if (hl) {
+      const curr = document.getElementById("highlights").value || "";
+      document.getElementById("highlights").value = curr ? (curr + "\n" + hl) : hl;
+    }
+    alert("Prefilled from MLS Sandbox");
+  } catch (e) { alert("Prefill failed"); }
+});

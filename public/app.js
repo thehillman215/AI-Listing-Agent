@@ -207,8 +207,10 @@ async function loadUsage() {
   $("#uTP").textContent = totals?.tp ?? 0;
   $("#uTC").textContent = totals?.tc ?? 0;
   const list = $("#usageEvents");
-  if (!Array.isArray(events) || events.length === 0) { list.innerHTML = "<li>No purchases yet.</li>"; return; }
-  list.innerHTML = events.map(ev => {
+  if (!Array.isArray(events) || events.length === 0) {
+    list.innerHTML = `<div class="usage-empty">• No purchases yet.</div>`;
+    return;
+  }list.innerHTML = events.map(ev => {
     const d = new Date(ev.created_at).toLocaleString();
     return `<li>${d}: +${ev.credits_added} credits (price: ${ev.stripe_price_id || "n/a"})</li>`;
   }).join("");

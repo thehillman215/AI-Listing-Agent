@@ -28,7 +28,13 @@
       <section class="form">
         <h2>Property Basics</h2>
         <div class="grid">
-          <label>Address <input id="address" placeholder="123 Oak St, Austin, TX" /></label>
+          <label>Address
+    <div class="brand-row">
+      <input id="address" placeholder="123 Main St, City, ST 00000" style="flex:1" />
+      <input id="mlsNumber" placeholder="MLS # (TEST123)" class="mini" style="width:140px" />
+      <button id="btnPrefill" class="mini" title="Prefill from MLS">Prefill</button>
+    </div>
+  </label>
           <label>Type
             <select id="type">
               <option value="single_family">Single-family</option>

@@ -7,7 +7,7 @@ import cookieSession from "cookie-session";
 import rateLimit from "express-rate-limit";
 import { ensureDb, getDb, getOrCreateUserByEmail, getCredits, decrementCredit, createUser, findUserByEmail, recordBillingEvent, getBrandPreset, saveBrandPreset } from "./src/db.js";
 import { generateListing } from "./src/generation.js";
-import { createCheckoutSession, handleWebhook } from "./src/billing.js";
+import { createCheckoutSession, handleWebhook, reconcileSession } from "./src/billing.js";
 import { renderPdfBuffer } from "./src/export.js";
 import { sendResultsEmail } from "./src/email.js";
 
@@ -85,6 +85,21 @@ app.get("/me", (req, res) => {
 });
 
 // --- Billing: create Checkout Session (requires login) ---
+
+// --- Billing verify (redirect reconciliation) ---
+app.get("/billing/verify", async (req,res)=>{
+  try{
+    const session_id = req.query.session_id;
+    const email = req.session?.user?.email || null;
+    if (!session_id || !email) return res.status(400).json({ ok:false, error:"Missing session or login" });
+    const out = await reconcileSession({ session_id, email });
+    res.json({ ok:true, reconciled: out.reconciled, credits_added: out.credits || 0 });
+  }catch(e){
+    console.error("verify failed", e);
+    res.status(400).json({ ok:false, error:String(e) });
+  }
+});
+
 app.post("/billing/checkout", async (req, res) => {
   try {
     const email = req.session?.user?.email || null;

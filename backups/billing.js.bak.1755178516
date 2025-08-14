@@ -1,3 +1,9 @@
+# backup first
+mkdir -p backups
+cp src/billing.js backups/billing.js.bak.$(date +%s) 2>/dev/null || true
+
+# overwrite with a single, clean version (includes reconcileSession once)
+cat > src/billing.js <<'JS'
 import Stripe from "stripe";
 import { CREDIT_PACKS, SUCCESS_URL, CANCEL_URL } from "./config.js";
 import { getDb, addCredits, recordBillingEvent } from "./db.js";
@@ -84,3 +90,4 @@ export async function reconcileSession({ session_id, email }) {
 
   return { reconciled: true, credits };
 }
+JS

@@ -52,35 +52,44 @@ export async function handleWebhook(rawBody, signature) {
   return { received: true };
 }
 
-/**
- * Reconcile a completed Checkout Session on redirect if the webhook was delayed.
- * Requires the user to be logged in (so we know which email to credit).
- * Idempotent when combined with a UNIQUE index on billing_events(stripe_checkout_id).
- */
 export async function reconcileSession({ session_id, email }) {
   const db = getDb();
-
-  // Already processed? (webhook probably got it)
   const exists = db.prepare("select 1 from billing_events where stripe_checkout_id=?").get(session_id);
-  if (exists) return { reconciled: false, reason: "already_recorded" };
+  if (exists) return { reconciled:false, reason:"already_recorded" };
 
-  // Fetch the real session from Stripe
   const s = await stripe.checkout.sessions.retrieve(session_id, { expand: ["line_items.data.price"] });
-  if (s.payment_status !== "paid") return { reconciled: false, reason: "not_paid" };
+  if (s.payment_status !== "paid") return { reconciled:false, reason:"not_paid" };
 
-  // We stored credits in metadata when creating the session
   const credits = Number(s.metadata?.credits || 0);
   const priceId = s?.line_items?.data?.[0]?.price?.id || null;
   const sessionEmail = s.customer_details?.email || s.customer_email || null;
 
-  // Only credit if emails match the logged-in user
   if (!credits || !sessionEmail || sessionEmail !== email) {
-    return { reconciled: false, reason: "email_or_credits_missing" };
+    return { reconciled:false, reason:"email_or_credits_missing" };
   }
 
-  // Credit + record (same as webhook path)
   addCredits(email, credits);
   recordBillingEvent({ email, credits_added: credits, stripe_checkout_id: s.id, stripe_price_id: priceId });
+  return { reconciled:true, credits };
+}
 
-  return { reconciled: true, credits };
+export async function reconcileSession({ session_id, email }) {
+  const db = getDb();
+  const exists = db.prepare("select 1 from billing_events where stripe_checkout_id=?").get(session_id);
+  if (exists) return { reconciled:false, reason:"already_recorded" };
+
+  const s = await stripe.checkout.sessions.retrieve(session_id, { expand: ["line_items.data.price"] });
+  if (s.payment_status !== "paid") return { reconciled:false, reason:"not_paid" };
+
+  const credits = Number(s.metadata?.credits || 0);
+  const priceId = s?.line_items?.data?.[0]?.price?.id || null;
+  const sessionEmail = s.customer_details?.email || s.customer_email || null;
+
+  if (!credits || !sessionEmail || sessionEmail !== email) {
+    return { reconciled:false, reason:"email_or_credits_missing" };
+  }
+
+  addCredits(email, credits);
+  recordBillingEvent({ email, credits_added: credits, stripe_checkout_id: s.id, stripe_price_id: priceId });
+  return { reconciled:true, credits };
 }

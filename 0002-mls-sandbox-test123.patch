@@ -1,0 +1,119 @@
+*** Begin Patch
+*** Add File: src/mls/fixtures.js
++export const TEST123 = {
++  mls_number: "TEST123",
++  address: "123 Lakeview Dr, Bridgton, ME 04009",
++  type: "Single-family",
++  beds: 3, baths: 2, sqft: 1820, lot_size: 1.25,
++  year_built: 1996, parking: "2-car garage",
++  hoa: null, school_district: "MSAD 61",
++  highlights: [
++    "Quartz kitchen counters", "Stainless appliances",
++    "Hardwood floors on main", "Wood-burning fireplace",
++    "Deck overlooking yard", "Lake access nearby"
++  ],
++  remarks: "Move-in ready lakeside home with bright living spaces and updated kitchen."
++};
+*** End Patch
+*** Begin Patch
+*** Update File: server.js
+@@
+ // --- Utility endpoints ---
+ app.get("/credits", (req, res) => {
+@@
+ });
+ 
++// --- MLS Sandbox (BYO) ---
++function mlsEnabled() { return String(process.env.MLS_SANDBOX_ENABLED || "false") === "true"; }
++app.get("/mls/providers", (req, res) => {
++  if (!mlsEnabled()) return res.json({ providers: [] });
++  const conn = req.session?.mls || null;
++  res.json({ providers: [{ id: "sandbox", name: "Sandbox", connected: !!(conn && conn.provider === "sandbox") }] });
++});
++app.get("/mls/status", (req, res) => {
++  if (!mlsEnabled()) return res.status(404).json({ error: "MLS disabled" });
++  const conn = req.session?.mls || null;
++  res.json({ connected: !!conn, provider: conn?.provider || null });
++});
++app.post("/mls/connect", (req, res) => {
++  if (!mlsEnabled()) return res.status(404).json({ error: "MLS disabled" });
++  req.session.mls = { provider: "sandbox", connected_at: Date.now() };
++  res.json({ ok: true });
++});
++app.post("/mls/disconnect", (req, res) => {
++  if (!mlsEnabled()) return res.status(404).json({ error: "MLS disabled" });
++  req.session.mls = null;
++  res.json({ ok: true });
++});
++app.post("/mls/fetch", async (req, res) => {
++  if (!mlsEnabled()) return res.status(404).json({ error: "MLS disabled" });
++  const conn = req.session?.mls || null;
++  if (!conn) return res.status(401).json({ error: "Connect Sandbox first" });
++  const { mls_number } = req.body || {};
++  if (!mls_number) return res.status(400).json({ error: "mls_number required" });
++  const { TEST123 } = await import("./src/mls/fixtures.js");
++  if (mls_number !== "TEST123") return res.status(404).json({ error: "Not found" });
++  res.json({ record: TEST123 });
++});
+*** End Patch
+*** Begin Patch
+*** Update File: public/index.html
+@@
+-  <label>Address
+-    <input id="address" placeholder="123 Main St, City, ST 00000" />
+-  </label>
++  <label>Address
++    <div class="brand-row">
++      <input id="address" placeholder="123 Main St, City, ST 00000" style="flex:1" />
++      <input id="mlsNumber" placeholder="MLS # (TEST123)" class="mini" style="width:140px" />
++      <button id="btnPrefill" class="mini" title="Prefill from MLS">Prefill</button>
++    </div>
++  </label>
+*** End Patch
+*** Begin Patch
+*** Update File: public/app.js
+@@
++// --- MLS Prefill (Sandbox) ---
++async function ensureSandbox() {
++  const r = await fetch("/mls/providers"); const data = await r.json();
++  return Array.isArray(data.providers) && data.providers.find(p => p.id === "sandbox");
++}
++document.getElementById("btnPrefill").addEventListener("click", async () => {
++  try {
++    const prov = await ensureSandbox();
++    if (!prov) return alert("MLS Sandbox is disabled. Set MLS_SANDBOX_ENABLED=true");
++    if (!prov.connected) {
++      const c = await fetch("/mls/connect", { method: "POST" });
++      if (!c.ok) return alert("Could not connect MLS Sandbox");
++    }
++    const mls = document.getElementById("mlsNumber").value.trim() || "TEST123";
++    const r = await fetch("/mls/fetch", {
++      method:"POST", headers:{ "Content-Type":"application/json" },
++      body: JSON.stringify({ mls_number: mls })
++    });
++    const data = await r.json();
++    if (!r.ok) return alert(data?.error || "MLS fetch failed");
++    const rec = data.record || {};
++    document.getElementById("address").value = rec.address || "";
++    document.getElementById("type").value = "Single-family";
++    document.getElementById("beds").value = rec.beds ?? "";
++    document.getElementById("baths").value = rec.baths ?? "";
++    document.getElementById("sqft").value = rec.sqft ?? "";
++    document.getElementById("lot").value = rec.lot_size ?? "";
++    document.getElementById("year").value = rec.year_built ?? "";
++    document.getElementById("parking").value = rec.parking || "";
++    document.getElementById("hoa").value = rec.hoa || "";
++    document.getElementById("school").value = rec.school_district || "";
++    const hl = (rec.highlights || []).join("; ");
++    if (hl) {
++      const curr = document.getElementById("highlights").value;
++      document.getElementById("highlights").value = curr ? `${curr}\n${hl}` : hl;
++    }
++    alert("Prefilled from MLS Sandbox");
++  } catch {
++    alert("Prefill failed");
++  }
++});
++document.getElementById("mlsNumber").value = localStorage.getItem("lastMLS") || "TEST123";
++document.getElementById("mlsNumber").addEventListener("change", (e) => localStorage.setItem("lastMLS", e.target.value));
+*** End Patch

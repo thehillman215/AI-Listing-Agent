@@ -63,3 +63,6 @@ footer { text-align:center; padding:24px; color:var(--muted); }
 #onboard .card { background: var(--card); border:1px solid #2a2f36; border-radius: 12px; padding: 16px; width: 360px; }
 #onboard ul { margin: 0 0 12px 18px; }
 #onboard .close { float:right; }
+
+.tip { cursor: help; display:inline-block; border:1px solid #2a2f36; border-radius:50%; width:18px; height:18px; line-height:16px; text-align:center; font-size:12px; color: var(--muted); }
+.usage-empty { color: var(--muted); }

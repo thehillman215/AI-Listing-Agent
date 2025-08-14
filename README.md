@@ -191,3 +191,15 @@ npm run check     # lightweight sanity task
 ## License
 
 TBD.
+### Vision (Photo-to-Facts)
+Set `USE_PHOTO_FACTS=true` to enable the photo analyzer route.
+
+Env:
+- `VISION_PROVIDER` (default `restb`)
+- `RESTB_API_KEY` (when Restb.ai is enabled)
+- `RESTB_BASE_URL` (default `https://api.restb.ai`)
+- `VISION_MAX_IMAGES` (default `10`)
+- `VISION_MIN_CONF` (default `0.55`)
+
+API:
+- `POST /photos/analyze` — upload 1–10 images (`images` form field). Auth required. Returns rooms/features + compliance flags. Returns 400 if disabled.

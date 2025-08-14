@@ -1,0 +1,69 @@
+*** Begin Patch
+*** Update File: public/styles.css
+@@
++.tip { cursor: help; display:inline-block; border:1px solid #2a2f36; border-radius:50%; width:18px; height:18px; line-height:16px; text-align:center; font-size:12px; color: var(--muted); }
++.usage-empty { color: var(--muted); }
+*** End Patch
+*** Begin Patch
+*** Update File: public/app.js
+@@
+ function renderFlags(flags) {
+   const el = $("#flags");
+   if (!flags.length) { el.innerHTML = `
+     <div class="ok">All clear ✓</div>
+   `; return; }
+-  el.innerHTML = `
+-    <h3>Potential issues</h3>
+-  ` + flags.map(f =>
+-    `
+-    <div class="flag">
+-      <div><strong>${f.type}</strong>: “${escapeHtml(f.original)}” → ${escapeHtml(f.suggest || "")}
+-        <button class="mini" data-apply-rewrite data-original="${escapeHtml(f.original)}" data-suggest="${escapeHtml(f.suggest || "")}">Apply rewrite</button>
+-      </div>
+-      <div class="muted">${escapeHtml(f.note || "")}</div>
+-    </div>
+-    `
+-  ).join("");
++  el.innerHTML = `
++    <h3>Potential issues</h3>
++  ` + flags.map(f => {
++    const note = escapeHtml(f.note || "");
++    return `
++    <div class="flag">
++      <div><strong>${f.type}</strong>: “${escapeHtml(f.original)}” → ${escapeHtml(f.suggest || "")}
++        <span class="tip" title="${note || 'Potential Fair Housing or marketing claim risk'}">i</span>
++        <button class="mini" data-apply-rewrite data-original="${escapeHtml(f.original)}" data-suggest="${escapeHtml(f.suggest || "")}">Apply rewrite</button>
++      </div>
++      ${note ? `<div class="muted">${note}</div>` : ``}
++    </div>`;
++  }).join("");
+ }
+@@
+ async function loadUsage() {
+   const r = await fetch("/usage");
+   if (r.status === 401) { openAuth("login"); return; }
+   const { totals, events } = await r.json();
+-  $("#uJobs").textContent = totals?.jobs ?? 0;
+-  $("#uTP").textContent = totals?.tp ?? 0;
+-  $("#uTC").textContent = totals?.tc ?? 0;
++  $("#uJobs").textContent = (totals?.jobs ?? 0).toLocaleString();
++  $("#uTP").textContent = (totals?.tp ?? 0).toLocaleString();
++  $("#uTC").textContent = (totals?.tc ?? 0).toLocaleString();
+   const list = $("#usageEvents");
+-  if (!Array.isArray(events) || events.length === 0) { list.innerHTML = `
+-    <div class="muted">• No purchases yet.</div>
+-  `; return; }
++  if (!Array.isArray(events) || events.length === 0) {
++    list.innerHTML = `<div class="usage-empty">• No purchases yet.</div>`;
++    return;
++  }
+   list.innerHTML = events.map(ev => {
+     const d = new Date(ev.created_at).toLocaleString();
+     return `
+       <div class="card">
+         <div>${d}: +${ev.credits_added} credits (price: ${ev.stripe_price_id || "n/a"})</div>
+       </div>
+     `;
+   }).join("");
+ }
+*** End Patch

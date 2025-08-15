@@ -294,7 +294,21 @@ function displayVariation(variation) {
     variation.flags.forEach(flag => {
       const div = document.createElement("div");
       div.className = "flag";
-      div.innerHTML = `<strong>${flag.type}:</strong> "${flag.original}" → <em>Suggestion:</em> ${flag.suggest}`;
+      
+      const strong = document.createElement("strong");
+      strong.textContent = flag.type;
+      div.appendChild(strong);
+      
+      div.appendChild(document.createTextNode(': "'));
+      div.appendChild(document.createTextNode(flag.original));
+      div.appendChild(document.createTextNode('" → '));
+      
+      const em = document.createElement("em");
+      em.textContent = "Suggestion:";
+      div.appendChild(em);
+      
+      div.appendChild(document.createTextNode(" " + flag.suggest));
+      
       flagsDiv.appendChild(div);
     });
   }

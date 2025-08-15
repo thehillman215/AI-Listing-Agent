@@ -157,11 +157,53 @@ function renderResults(data) {
 
 function renderFlags(flags) {
   const el = $("#flags");
-  if (!flags.length) { el.innerHTML = "<div class='ok'>All clear ✓</div>"; return; }
-  el.innerHTML = "<h3>Potential issues</h3>" + flags.map(f =>
-    `<div class="flag"><strong>${f.type}</strong>: “${escapeHtml(f.original)}” → <em>${escapeHtml(f.suggest || "")}</em><br><small>${escapeHtml(f.note || "")}</small></div>`
-  ).join("");
-}
+  if (!flags.length) { 
+    el.innerHTML = "";
+    const okDiv = document.createElement("div");
+    okDiv.className = "ok";
+    okDiv.textContent = "All clear ✓";
+    el.appendChild(okDiv);
+    return; 
+  }
+  
+  // Clear existing content and build safely with DOM methods
+  el.innerHTML = "";
+  
+  // Create and append header
+  const header = document.createElement("h3");
+  header.textContent = "Potential issues";
+  el.appendChild(header);
+  
+  // Create flag elements using safe DOM methods
+  flags.forEach(f => {
+    const flagDiv = document.createElement("div");
+    flagDiv.className = "flag";
+    
+    const typeStrong = document.createElement("strong");
+    typeStrong.textContent = f.type;
+    flagDiv.appendChild(typeStrong);
+    
+    flagDiv.appendChild(document.createTextNode(': "'));
+    
+    const originalSpan = document.createElement("span");
+    originalSpan.textContent = f.original;
+    flagDiv.appendChild(originalSpan);
+    
+    flagDiv.appendChild(document.createTextNode('" → '));
+    
+    const suggestEm = document.createElement("em");
+    suggestEm.textContent = f.suggest || "";
+    flagDiv.appendChild(suggestEm);
+    
+    if (f.note) {
+      flagDiv.appendChild(document.createElement("br"));
+      const noteSmall = document.createElement("small");
+      noteSmall.textContent = f.note;
+      flagDiv.appendChild(noteSmall);
+    }
+    
+    el.appendChild(flagDiv);
+  });}
 
 // Character counter for MLS
 function updateCharCount() {
@@ -191,12 +233,33 @@ async function loadHistory() {
   const list = $("#historyList");
   const r = await fetch("/history");
   const data = await r.json();
-  if (!Array.isArray(data.items) || data.items.length === 0) { list.innerHTML = "<li>No history yet.</li>"; return; }
-  list.innerHTML = data.items.map(it => {
+  if (!Array.isArray(data.items) || data.items.length === 0) { 
+    list.innerHTML = "";
+    const emptyItem = document.createElement("li");
+    emptyItem.textContent = "No history yet.";
+    list.appendChild(emptyItem);
+    return; 
+  }
+  
+  // Clear existing content and build safely with DOM methods
+  list.innerHTML = "";
+  data.items.forEach(it => {
+    const listItem = document.createElement("li");
+    
+    const dateStrong = document.createElement("strong");
     const d = new Date(it.created_at).toLocaleString();
+    dateStrong.textContent = d;
+    listItem.appendChild(dateStrong);
+    
+    listItem.appendChild(document.createElement("br"));
+    
     const desc = it.output?.description_mls ? it.output.description_mls.slice(0, 140) + "…" : "(no data)";
-    return `<li><strong>${d}</strong><br>${escapeHtml(desc)}</li>`;
-  }).join("");
+    const descSpan = document.createElement("span");
+    descSpan.textContent = desc;
+    listItem.appendChild(descSpan);
+    
+    list.appendChild(listItem);
+  });
 }
 
 async function loadUsage() {
@@ -208,12 +271,22 @@ async function loadUsage() {
   $("#uTC").textContent = totals?.tc ?? 0;
   const list = $("#usageEvents");
   if (!Array.isArray(events) || events.length === 0) {
-    list.innerHTML = `<div class="usage-empty">• No purchases yet.</div>`;
+    list.innerHTML = "";
+    const emptyDiv = document.createElement("div");
+    emptyDiv.className = "usage-empty";
+    emptyDiv.textContent = "• No purchases yet.";
+    list.appendChild(emptyDiv);
     return;
-  }list.innerHTML = events.map(ev => {
+  }
+  
+  // Clear existing content and build safely with DOM methods
+  list.innerHTML = "";
+  events.forEach(ev => {
+    const listItem = document.createElement("li");
     const d = new Date(ev.created_at).toLocaleString();
-    return `<li>${d}: +${ev.credits_added} credits (price: ${ev.stripe_price_id || "n/a"})</li>`;
-  }).join("");
+    listItem.textContent = `${d}: +${ev.credits_added} credits (price: ${ev.stripe_price_id || "n/a"})`;
+    list.appendChild(listItem);
+  });
 }
 
 // ME / CREDITS
@@ -281,11 +354,63 @@ document.addEventListener("click", (e) => {
 const _renderFlags = renderFlags;
 renderFlags = function(flags) {
   const el = $("#flags");
-  if (!flags.length) { el.innerHTML = "<div class='ok'>All clear ✓</div>"; return; }
-  el.innerHTML = "<h3>Potential issues</h3>" + flags.map(f => {
-    const btn = `<button class="mini" data-apply-rewrite data-original="${escapeHtml(f.original||'')}" data-suggest="${escapeHtml(f.suggest||'')}">Apply rewrite</button>`;
-    return `<div class="flag"><strong>${f.type}</strong>: "${escapeHtml(f.original)}" → <em>${escapeHtml(f.suggest || "")}</em> ${btn}<br><small>${escapeHtml(f.note || "")}</small></div>`;
-  }).join("");
+  if (!flags.length) { 
+    el.innerHTML = "";
+    const okDiv = document.createElement("div");
+    okDiv.className = "ok";
+    okDiv.textContent = "All clear ✓";
+    el.appendChild(okDiv);
+    return; 
+  }
+  // Clear existing content and build safely with DOM methods
+  el.innerHTML = "";
+  
+  // Create and append header
+  const header = document.createElement("h3");
+  header.textContent = "Potential issues";
+  el.appendChild(header);
+  
+  // Create flag elements using safe DOM methods
+  flags.forEach(f => {
+    const flagDiv = document.createElement("div");
+    flagDiv.className = "flag";
+    
+    const typeStrong = document.createElement("strong");
+    typeStrong.textContent = f.type;
+    flagDiv.appendChild(typeStrong);
+    
+    flagDiv.appendChild(document.createTextNode(': "'));
+    
+    const originalSpan = document.createElement("span");
+    originalSpan.textContent = f.original;
+    flagDiv.appendChild(originalSpan);
+    
+    flagDiv.appendChild(document.createTextNode('" → '));
+    
+    const suggestEm = document.createElement("em");
+    suggestEm.textContent = f.suggest || "";
+    flagDiv.appendChild(suggestEm);
+    
+    flagDiv.appendChild(document.createTextNode(' '));
+    
+    // Create Apply button safely
+    const applyBtn = document.createElement("button");
+    applyBtn.className = "mini";
+    applyBtn.setAttribute("data-apply-rewrite", "");
+    applyBtn.setAttribute("data-original", f.original || "");
+    applyBtn.setAttribute("data-suggest", f.suggest || "");
+    applyBtn.textContent = "Apply rewrite";
+    flagDiv.appendChild(applyBtn);
+    
+    if (f.note) {
+      flagDiv.appendChild(document.createElement("br"));
+      const noteSmall = document.createElement("small");
+      noteSmall.textContent = f.note;
+      flagDiv.appendChild(noteSmall);
+    }
+    
+    el.appendChild(flagDiv);
+  });
 };
 
 // EMAIL & PDF

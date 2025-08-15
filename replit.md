@@ -17,6 +17,7 @@ This is a complete AI-powered real estate listing description generator that hel
 - ✓ Deployment configuration optimized (replit.toml, enhanced health checks)
 - ✓ Production server improvements (graceful shutdown, error handling)
 - ✓ Multiple health check endpoints (/health, /healthz, /ping)
+- ✓ Project cleanup: removed deprecated files and duplicate directories
 - → Ready for deployment
 
 ## User Preferences
@@ -106,3 +107,25 @@ Preferred communication style: Simple, everyday language.
 - STRIPE_SECRET_KEY: ✓ Configured
 - RESEND_API_KEY: ⚠ Optional (for email functionality)
 - NODE_ENV: Set to 'production' in deployment config
+
+## Project Cleanup (August 2025)
+
+### Removed Deprecated Files
+- **attached_assets/**: Removed entire directory containing old zip files and duplicate code
+- **AI-Listing-Agent/**: Removed duplicate project directory 
+- **backups/**: Removed backup directory with old billing.js versions
+- **Development artifacts**: Removed cookies.txt, test_listing.pdf, and .bak files
+- **Result**: Reduced project size from ~150MB to ~80MB, cleaner structure
+
+### Current File Structure
+```
+├── server.js           # Main application server
+├── package.json        # Dependencies and scripts  
+├── src/               # Application modules
+├── public/            # Frontend assets
+├── scripts/           # Database and utility scripts
+├── data/              # SQLite database
+├── replit.toml        # Deployment configuration
+├── Dockerfile         # Container configuration
+└── stripe_prices.json # Live Stripe pricing data
+```

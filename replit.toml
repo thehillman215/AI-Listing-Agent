@@ -6,6 +6,7 @@ channel = "stable-24_05"
 [deployment]
 run = ["sh", "-c", "npm start"]
 deploymentTarget = "autoscale"
+ignorePorts = false
 
 [[ports]]
 localPort = 3000
@@ -13,3 +14,5 @@ externalPort = 80
 
 [env]
 NODE_ENV = "production"
+HOST = "0.0.0.0"
+PORT = "3000"

@@ -280,13 +280,29 @@ app.get("/health", (req, res) => {
     status: "healthy", 
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    version: "1.2.0"
+    version: "1.3.0",
+    env: process.env.NODE_ENV || "development",
+    port: PORT,
+    host: HOST
   });
 });
 
 // Additional health check routes for different deployment systems
 app.get("/healthz", (req, res) => res.status(200).json({ status: "ok" }));
 app.get("/ping", (req, res) => res.status(200).send("pong"));
+app.get("/", (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    // In production, serve the health check on root as well
+    res.status(200).json({ 
+      status: "healthy", 
+      app: "AI Listing Agent",
+      version: "1.3.0"
+    });
+  } else {
+    // In development, serve the frontend
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+  }
+});
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || "0.0.0.0";

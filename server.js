@@ -63,8 +63,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, "public")));
 
-ensureDb();
-
 // --- Auth ---
 app.post("/auth/signup", async (req, res) => {
   try {
@@ -590,20 +588,58 @@ function escapeHtml(s) {
 
 // Health check endpoint for deployment
 app.get("/health", (req, res) => {
-  res.status(200).json({ 
-    status: "healthy", 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    version: "1.3.0",
-    env: process.env.NODE_ENV || "development",
-    port: PORT,
-    host: HOST
-  });
+  try {
+    // Check database connection
+    const db = getDb();
+    const dbCheck = db.prepare("SELECT 1").get();
+    
+    res.status(200).json({ 
+      status: "healthy", 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      version: "1.3.0",
+      env: process.env.NODE_ENV || "development",
+      port: PORT,
+      host: HOST,
+      database: dbCheck ? "connected" : "error",
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
+      }
+    });
+  } catch (error) {
+    console.error('Health check failed:', error);
+    res.status(503).json({ 
+      status: "unhealthy", 
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Additional health check routes for different deployment systems
-app.get("/healthz", (req, res) => res.status(200).json({ status: "ok" }));
+app.get("/healthz", (req, res) => {
+  try {
+    const db = getDb();
+    db.prepare("SELECT 1").get();
+    res.status(200).json({ status: "ok" });
+  } catch (error) {
+    res.status(503).json({ status: "error", message: error.message });
+  }
+});
+
 app.get("/ping", (req, res) => res.status(200).send("pong"));
+
+// Readiness probe for deployment systems
+app.get("/ready", (req, res) => {
+  try {
+    const db = getDb();
+    db.prepare("SELECT 1").get();
+    res.status(200).json({ status: "ready" });
+  } catch (error) {
+    res.status(503).json({ status: "not_ready", error: error.message });
+  }
+});
 app.get("/", (req, res) => {
   if (process.env.NODE_ENV === "production") {
     // In production, serve the health check on root as well
@@ -621,25 +657,68 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || "0.0.0.0";
 
-// Graceful shutdown handling
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, shutting down gracefully');
-  process.exit(0);
-});
+// Initialize database before starting server
+try {
+  ensureDb();
+  console.log('Database initialized successfully');
+} catch (error) {
+  console.error('Failed to initialize database:', error);
+  process.exit(1);
+}
 
-process.on('SIGINT', () => {
-  console.log('Received SIGINT, shutting down gracefully');
-  process.exit(0);
-});
+// Graceful shutdown handling
+let isShuttingDown = false;
+
+const shutdown = (signal) => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  
+  console.log(`Received ${signal}, shutting down gracefully`);
+  
+  if (server) {
+    server.close(() => {
+      console.log('Server closed');
+      process.exit(0);
+    });
+    
+    // Force close after 10 seconds
+    setTimeout(() => {
+      console.log('Force closing server');
+      process.exit(1);
+    }, 10000);
+  } else {
+    process.exit(0);
+  }
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 const server = app.listen(PORT, HOST, () => {
   console.log(`AI Listing Agent v1.3 on http://${HOST}:${PORT}`);
   console.log(`Health check: http://${HOST}:${PORT}/health`);
+  console.log(`Readiness check: http://${HOST}:${PORT}/ready`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Database: ${process.env.NODE_ENV === 'production' ? 'Initialized' : 'data/app.db'}`);
 });
 
 // Handle server errors
 server.on('error', (err) => {
-  console.error('Server error:', err);
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use`);
+  } else {
+    console.error('Server error:', err);
+  }
   process.exit(1);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  shutdown('uncaughtException');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  shutdown('unhandledRejection');
 });

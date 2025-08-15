@@ -432,16 +432,44 @@ function renderBrands(brands) {
   brands.forEach(brand => {
     const card = document.createElement("div");
     card.className = "brand-card";
-    card.innerHTML = `
-      <h4>${brand.name} ${brand.is_default ? '(Default)' : ''}</h4>
-      <p class="muted">${brand.company_name || 'No company'} • ${brand.voice} voice</p>
-      <p>${brand.specializations || 'General real estate'}</p>
-      <div class="card-actions">
-        <button onclick="useBrand('${brand.id}')">Use Brand</button>
-        <button onclick="editBrand('${brand.id}')" class="secondary">Edit</button>
-        <button onclick="deleteBrand('${brand.id}')" class="danger">Delete</button>
-      </div>
-    `;
+    
+    // Create elements safely using createElement and textContent
+    const title = document.createElement("h4");
+    title.textContent = `${brand.name} ${brand.is_default ? '(Default)' : ''}`;
+    
+    const subtitle = document.createElement("p");
+    subtitle.className = "muted";
+    subtitle.textContent = `${brand.company_name || 'No company'} • ${brand.voice} voice`;
+    
+    const description = document.createElement("p");
+    description.textContent = brand.specializations || 'General real estate';
+    
+    const actions = document.createElement("div");
+    actions.className = "card-actions";
+    
+    const useBtn = document.createElement("button");
+    useBtn.textContent = "Use Brand";
+    useBtn.onclick = () => useBrand(brand.id);
+    
+    const editBtn = document.createElement("button");
+    editBtn.className = "secondary";
+    editBtn.textContent = "Edit";
+    editBtn.onclick = () => editBrand(brand.id);
+    
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "danger";
+    deleteBtn.textContent = "Delete";
+    deleteBtn.onclick = () => deleteBrand(brand.id);
+    
+    actions.appendChild(useBtn);
+    actions.appendChild(editBtn);
+    actions.appendChild(deleteBtn);
+    
+    card.appendChild(title);
+    card.appendChild(subtitle);
+    card.appendChild(description);
+    card.appendChild(actions);
+    
     container.appendChild(card);
   });
 }

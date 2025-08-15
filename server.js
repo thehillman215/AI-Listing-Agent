@@ -274,10 +274,42 @@ function escapeHtml(s) {
   return String(s || "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;" }[c]));
 }
 
-app.get("/health", (req, res) => res.json({ ok: true }));
+// Health check endpoint for deployment
+app.get("/health", (req, res) => {
+  res.status(200).json({ 
+    status: "healthy", 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    version: "1.2.0"
+  });
+});
+
+// Additional health check routes for different deployment systems
+app.get("/healthz", (req, res) => res.status(200).json({ status: "ok" }));
+app.get("/ping", (req, res) => res.status(200).send("pong"));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`AI Listing Agent v1.3 on http://0.0.0.0:${PORT}`);
-  console.log(`Health check: http://0.0.0.0:${PORT}/health`);
+const HOST = process.env.HOST || "0.0.0.0";
+
+// Graceful shutdown handling
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('Received SIGINT, shutting down gracefully');
+  process.exit(0);
+});
+
+const server = app.listen(PORT, HOST, () => {
+  console.log(`AI Listing Agent v1.3 on http://${HOST}:${PORT}`);
+  console.log(`Health check: http://${HOST}:${PORT}/health`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// Handle server errors
+server.on('error', (err) => {
+  console.error('Server error:', err);
+  process.exit(1);
 });

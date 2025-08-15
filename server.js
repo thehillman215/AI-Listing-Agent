@@ -394,18 +394,6 @@ app.delete("/brands/:id", (req, res) => {
   res.json({ success });
 });
 
-// --- Templates API ---
-app.get("/templates", (req, res) => {
-  const email = req.session?.user?.email || null;
-  if (!email) return res.status(401).json({ error: "Login required" });
-  const templates = getTemplatesByUser(email);
-  res.json({ templates });
-});
-
-app.post("/templates", (req, res) => {
-  const email = req.session?.user?.email || null;
-  if (!email) return res.status(401).json({ error: "Login required" });
-
   const subscription = getUserSubscription(email);
   const existingCount = getTemplatesByUser(email).length;
 
@@ -423,11 +411,6 @@ app.post("/templates", (req, res) => {
   res.json({ template });
 });
 
-// --- Analytics API ---
-app.get("/analytics", async (req, res) => {
-  const email = req.session?.user?.email || null;
-  if (!email) return res.status(401).json({ error: "Login required" });
-
   const subscription = getUserSubscription(email);
   if (!subscription?.analytics_access) {
     return res
@@ -439,28 +422,10 @@ app.get("/analytics", async (req, res) => {
   res.json(analytics);
 });
 
-// --- Feedback API ---
-app.post("/feedback", async (req, res) => {
-  const email = req.session?.user?.email || null;
-  if (!email) return res.status(401).json({ error: "Login required" });
-
   const { jobId, rating, feedback } = req.body;
   await submitFeedback(email, jobId, rating, feedback);
   res.json({ success: true });
 });
-
-// --- Batch Processing API ---
-app.get("/batch", (req, res) => {
-  const email = req.session?.user?.email || null;
-  if (!email) return res.status(401).json({ error: "Login required" });
-
-  const jobs = getBatchJobsByUser(email);
-  res.json({ jobs });
-});
-
-app.post("/batch/process", async (req, res) => {
-  const email = req.session?.user?.email || null;
-  if (!email) return res.status(401).json({ error: "Login required" });
 
   const subscription = getUserSubscription(email);
   if (!subscription?.analytics_access) {
@@ -473,11 +438,6 @@ app.post("/batch/process", async (req, res) => {
   const batchId = await processBatch(email, properties);
   res.json({ batchId });
 });
-
-// --- Subscription Management ---
-app.post("/subscription/upgrade", (req, res) => {
-  const email = req.session?.user?.email || null;
-  if (!email) return res.status(401).json({ error: "Login required" });
 
   const { plan } = req.body;
   if (plan === "pro") {

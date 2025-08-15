@@ -344,16 +344,49 @@ function renderTemplates(templates) {
   templates.forEach(template => {
     const card = document.createElement("div");
     card.className = "template-card";
-    card.innerHTML = `
-      <h4>${template.name}</h4>
-      <p class="muted">${template.property_type} • Used ${template.usage_count} times</p>
-      <p>${template.description || 'No description'}</p>
-      <div class="card-actions">
-        <button onclick="useTemplate('${template.id}')">Use Template</button>
-        <button onclick="editTemplate('${template.id}')" class="secondary">Edit</button>
-        ${template.user_email === currentUser ? `<button onclick="deleteTemplate('${template.id}')" class="danger">Delete</button>` : ''}
-      </div>
-    `;
+    
+    // Create title safely
+    const title = document.createElement("h4");
+    title.textContent = template.name;
+    card.appendChild(title);
+    
+    // Create metadata safely
+    const meta = document.createElement("p");
+    meta.className = "muted";
+    meta.textContent = `${template.property_type} • Used ${template.usage_count} times`;
+    card.appendChild(meta);
+    
+    // Create description safely
+    const desc = document.createElement("p");
+    desc.textContent = template.description || 'No description';
+    card.appendChild(desc);
+    
+    // Create actions container
+    const actions = document.createElement("div");
+    actions.className = "card-actions";
+    
+    // Create buttons safely
+    const useBtn = document.createElement("button");
+    useBtn.textContent = "Use Template";
+    useBtn.onclick = () => useTemplate(template.id);
+    actions.appendChild(useBtn);
+    
+    const editBtn = document.createElement("button");
+    editBtn.className = "secondary";
+    editBtn.textContent = "Edit";
+    editBtn.onclick = () => editTemplate(template.id);
+    actions.appendChild(editBtn);
+    
+    // Add delete button if user owns template
+    if (template.user_email === currentUser) {
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "danger";
+      deleteBtn.textContent = "Delete";
+      deleteBtn.onclick = () => deleteTemplate(template.id);
+      actions.appendChild(deleteBtn);
+    }
+    
+    card.appendChild(actions);
     container.appendChild(card);
   });
 }

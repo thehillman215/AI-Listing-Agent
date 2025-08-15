@@ -5,9 +5,11 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 import cookieSession from "cookie-session";
 import rateLimit from "express-rate-limit";
-import { ensureDb, getDb, getOrCreateUserByEmail, getCredits, decrementCredit, createUser, findUserByEmail, recordBillingEvent, getBrandPreset, saveBrandPreset } from "./src/db.js";
+import { ensureDb, getDb, getOrCreateUserByEmail, getCredits, decrementCredit, createUser, findUserByEmail, recordBillingEvent, getBrandPreset, saveBrandPreset, getBrandPresets, deleteBrandPreset, getPropertyTemplates, savePropertyTemplate, getUserSubscription, updateUserSubscription, saveGenerationFeedback, trackUserEvent, getUserAnalytics, createBatchJob, updateBatchJob, getBatchJob, getUserBatchJobs } from "./src/db.js";
 import { generateListing } from "./src/generation.js";
 import { createCheckoutSession, handleWebhook, reconcileSession } from "./src/billing.js";
+import { processBatchProperties, validateBatchProperties } from "./src/batchProcessor.js";
+import { getAdminAnalytics, getUserAnalyticsData } from "./src/analyticsService.js";
 import { renderPdfBuffer } from "./src/export.js";
 import { sendResultsEmail } from "./src/email.js";
 
@@ -81,7 +83,8 @@ app.post("/auth/logout", (req, res) => {
 app.get("/me", (req, res) => {
   const email = req.session?.user?.email || null;
   const credits = email ? (getCredits(email) ?? 0) : null;
-  res.json({ email, credits });
+  const subscription = email ? getUserSubscription(email) : null;
+  res.json({ email, credits, subscription });
 });
 
 // --- Billing: create Checkout Session (requires login) ---
@@ -119,30 +122,65 @@ const limiter = rateLimit({
   max: Number(process.env.RATE_LIMIT_PER_MIN || 10)
 });
 
-// --- Generate route ---
+// --- Enhanced Generate route ---
 app.post("/generate", limiter, async (req, res) => {
   try {
     const body = req.body || {};
     const email = req.session?.user?.email || null;
+    const variations = parseInt(body.variations) || 1;
     const guestCredits = Number(process.env.FREE_CREDITS_GUEST || 3);
 
     if (email) {
       // Ensure user exists with default email credits
       getOrCreateUserByEmail(email, Number(process.env.FREE_CREDITS_EMAIL || 5));
       const available = getCredits(email) || 0;
-      if (available <= 0) {
-        return res.status(402).json({ error: "Not enough credits", need_credits: true });
+      const creditsNeeded = variations; // Each variation costs 1 credit
+      
+      if (available < creditsNeeded) {
+        return res.status(402).json({ error: "Not enough credits", need_credits: true, required: creditsNeeded, available });
       }
     }
 
-    const { result, flags, tokens, model } = await generateListing({ ...body, user: { email } });
+    const result = await generateListing({ ...body, user: { email } });
 
     if (email) {
-      const ok = decrementCredit(email);
-      if (!ok) return res.status(402).json({ error: "Not enough credits", need_credits: true });
+      // Deduct credits equal to number of variations
+      for (let i = 0; i < variations; i++) {
+        const ok = decrementCredit(email);
+        if (!ok) return res.status(402).json({ error: "Not enough credits", need_credits: true });
+      }
+      
+      // Track generation event  
+      try {
+        trackUserEvent(email, 'listing_generated', { 
+          variations, 
+          propertyType: body.property?.type,
+          template: body.template_id 
+        });
+      } catch (e) {
+        console.log("Event tracking failed:", e.message);
+      }
     }
 
-    res.json({ ...result, flags, tokens, model });
+    // Handle single result or multiple variations
+    if (result.variations) {
+      res.json({ 
+        ...result.variations[0], 
+        jobId: result.jobId,
+        variations: result.variations,
+        flags: result.flags, 
+        tokens: result.tokens, 
+        model: result.model 
+      });
+    } else {
+      res.json({ 
+        ...result, 
+        variations: [result],
+        flags: result.flags, 
+        tokens: result.tokens, 
+        model: result.model 
+      });
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Generation failed", detail: String(err) });
@@ -208,20 +246,280 @@ app.get("/usage", async (req, res) => {
 });
 
 
-// --- Brand presets ---
+// --- Enhanced Brand presets ---
+app.get("/brands", (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  const presets = getBrandPresets(email);
+  res.json({ presets });
+});
+
+app.post("/brands", (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  
+  const subscription = getUserSubscription(email);
+  const existingCount = getBrandPresets(email).length;
+  
+  if (!req.body.id && existingCount >= subscription.max_brands) {
+    return res.status(403).json({ error: `Plan limited to ${subscription.max_brands} brand presets. Upgrade to create more.` });
+  }
+  
+  saveBrandPreset(email, req.body);
+  trackUserEvent(email, 'brand_preset_saved', { name: req.body.name });
+  res.json({ ok: true });
+});
+
+app.delete("/brands/:id", (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  
+  const success = deleteBrandPreset(email, req.params.id);
+  if (success) {
+    trackUserEvent(email, 'brand_preset_deleted', { id: req.params.id });
+  }
+  res.json({ success });
+});
+
+// --- Templates API ---
+app.get("/templates", (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  const templates = getTemplatesByUser(email);
+  res.json({ templates });
+});
+
+app.post("/templates", (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  
+  const subscription = getUserSubscription(email);
+  const existingCount = getTemplatesByUser(email).length;
+  
+  if (!req.body.id && existingCount >= subscription.max_templates) {
+    return res.status(403).json({ error: `Plan limited to ${subscription.max_templates} templates. Upgrade to create more.` });
+  }
+  
+  const template = createTemplate(email, req.body);
+  trackUserEvent(email, 'template_created', { name: req.body.name, type: req.body.property_type });
+  res.json({ template });
+});
+
+// --- Analytics API ---
+app.get("/analytics", async (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  
+  const subscription = getUserSubscription(email);
+  if (!subscription?.analytics_access) {
+    return res.status(403).json({ error: "Analytics requires Pro subscription" });
+  }
+  
+  const analytics = await getAnalytics(email);
+  res.json(analytics);
+});
+
+// --- Feedback API ---
+app.post("/feedback", async (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  
+  const { jobId, rating, feedback } = req.body;
+  await submitFeedback(email, jobId, rating, feedback);
+  res.json({ success: true });
+});
+
+// --- Batch Processing API ---
+app.get("/batch", (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  
+  const jobs = getBatchJobsByUser(email);
+  res.json({ jobs });
+});
+
+app.post("/batch/process", async (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  
+  const subscription = getUserSubscription(email);
+  if (!subscription?.analytics_access) {
+    return res.status(403).json({ error: "Batch processing requires Pro subscription" });
+  }
+  
+  const { properties } = req.body;
+  const batchId = await processBatch(email, properties);
+  res.json({ batchId });
+});
+
+// --- Subscription Management ---
+app.post("/subscription/upgrade", (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  
+  const { plan } = req.body;
+  if (plan === 'pro') {
+    updateUserSubscription(email, 'pro');
+    trackUserEvent(email, 'subscription_upgraded', { plan: 'pro' });
+    res.json({ success: true });
+  } else {
+    res.status(400).json({ error: "Invalid plan" });
+  }
+});
+
+// Legacy brand endpoint for backward compatibility
 app.get("/brand", (req, res) => {
   const email = req.session?.user?.email || null;
   if (!email) return res.status(401).json({ error: "Login required" });
-  const preset = getBrandPreset(email) || null;
-  res.json({ preset });
+  const presets = getBrandPresets(email);
+  const defaultPreset = presets.find(p => p.is_default) || presets[0] || null;
+  res.json({ preset: defaultPreset });
 });
 
-app.post("/brand", (req, res) => {
+// --- Property Templates ---
+app.get("/templates", (req, res) => {
   const email = req.session?.user?.email || null;
   if (!email) return res.status(401).json({ error: "Login required" });
-  const { voice, reading_level, keywords } = req.body || {};
-  saveBrandPreset(email, { voice, reading_level, keywords });
+  const templates = getPropertyTemplates(email);
+  res.json({ templates });
+});
+
+app.post("/templates", (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  
+  const subscription = getUserSubscription(email);
+  const userTemplates = getPropertyTemplates(email).filter(t => t.user_email === email);
+  
+  if (!req.body.id && userTemplates.length >= subscription.max_templates) {
+    return res.status(403).json({ error: `Plan limited to ${subscription.max_templates} templates. Upgrade to create more.` });
+  }
+  
+  savePropertyTemplate(email, req.body);
+  trackUserEvent(email, 'template_saved', { name: req.body.name, type: req.body.property_type });
   res.json({ ok: true });
+});
+
+// --- Feedback & AI Learning ---
+app.post("/feedback", (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  
+  const { jobId, rating, feedback } = req.body;
+  if (!jobId || !rating) return res.status(400).json({ error: "Job ID and rating required" });
+  
+  saveGenerationFeedback(email, jobId, rating, feedback);
+  trackUserEvent(email, 'feedback_submitted', { jobId, rating });
+  res.json({ ok: true });
+});
+
+// --- Batch Processing ---
+app.post("/batch/process", async (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  
+  const subscription = getUserSubscription(email);
+  if (!subscription.batch_processing) {
+    return res.status(403).json({ error: "Batch processing requires Pro plan" });
+  }
+  
+  const { properties } = req.body;
+  const validationErrors = validateBatchProperties(properties);
+  if (validationErrors.length > 0) {
+    return res.status(400).json({ errors: validationErrors });
+  }
+  
+  // Check credits
+  const credits = getCredits(email);
+  if (credits < properties.length) {
+    return res.status(402).json({ error: `Insufficient credits. Need ${properties.length}, have ${credits}` });
+  }
+  
+  // Create batch job
+  const batchId = createBatchJob(email, properties);
+  
+  // Process asynchronously
+  processBatchProperties(batchId, properties, email).catch(console.error);
+  
+  trackUserEvent(email, 'batch_started', { batchId, propertyCount: properties.length });
+  res.json({ batchId, status: 'processing' });
+});
+
+app.get("/batch/:id", (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  
+  const job = getBatchJob(email, req.params.id);
+  if (!job) return res.status(404).json({ error: "Batch job not found" });
+  
+  const results = JSON.parse(job.results || '[]');
+  res.json({
+    id: job.id,
+    status: job.status,
+    total: job.total_properties,
+    completed: job.completed_properties,
+    results: results,
+    created_at: job.created_at,
+    updated_at: job.updated_at
+  });
+});
+
+app.get("/batch", (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  
+  const jobs = getUserBatchJobs(email);
+  res.json({ jobs: jobs.map(job => ({
+    id: job.id,
+    status: job.status,
+    total: job.total_properties,
+    completed: job.completed_properties,
+    created_at: job.created_at
+  })) });
+});
+
+// --- Subscription Management ---
+app.post("/subscription/upgrade", (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  
+  const { plan } = req.body;
+  if (!['basic', 'pro'].includes(plan)) {
+    return res.status(400).json({ error: "Invalid plan" });
+  }
+  
+  updateUserSubscription(email, plan);
+  trackUserEvent(email, 'subscription_updated', { plan });
+  res.json({ ok: true });
+});
+
+// --- Analytics ---
+app.get("/analytics", (req, res) => {
+  const email = req.session?.user?.email || null;
+  if (!email) return res.status(401).json({ error: "Login required" });
+  
+  const subscription = getUserSubscription(email);
+  if (!subscription.analytics_access) {
+    return res.status(403).json({ error: "Analytics requires Pro plan" });
+  }
+  
+  const data = getUserAnalyticsData(email);
+  res.json(data);
+});
+
+// --- Admin Analytics ---
+app.get("/admin/analytics", (req, res) => {
+  const email = req.session?.user?.email || null;
+  // Simple admin check - in production this should be more robust
+  const isAdmin = email && (email.endsWith('@replit.com') || email === process.env.ADMIN_EMAIL);
+  
+  if (!isAdmin) {
+    return res.status(403).json({ error: "Admin access required" });
+  }
+  
+  const timeframe = req.query.timeframe || '30d';
+  const analytics = getAdminAnalytics(timeframe);
+  res.json(analytics);
 });
 
 // --- PDF export ---

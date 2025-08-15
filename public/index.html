@@ -11,10 +11,15 @@
     <h1>AI Listing Agent</h1>
     <nav>
       <button class="nav-btn" data-view="generator">Generator</button>
+      <button class="nav-btn" data-view="templates">Templates</button>
+      <button class="nav-btn" data-view="brands">Brand Settings</button>
+      <button class="nav-btn" data-view="batch">Batch Process</button>
       <button class="nav-btn" data-view="history">History</button>
       <button class="nav-btn" data-view="billing">Billing & Usage</button>
+      <button class="nav-btn" data-view="analytics" id="analyticsTab" style="display:none;">Analytics</button>
     </nav>
     <div class="account">
+      <span id="planBadge" style="display:none;">Basic</span>
       <span id="creditsBadge">Credits: —</span>
       <span id="meEmail">Guest</span>
       <button id="btnLogin">Log in</button>
@@ -56,8 +61,29 @@
         <h2>Highlights & Upgrades</h2>
         <textarea id="highlights" rows="5" placeholder="Updated kitchen with quartz counters; New roof (2023); Covered patio..."></textarea>
 
-        <h2>Style</h2>
-        <div class="brand-row"><label class="toggle"><input type="checkbox" id="rememberStyle" /> Remember my style</label><button id="applyPreset" class="mini">Load preset</button><button id="savePreset" class="mini">Save preset</button></div>
+        <h2>Style & Templates</h2>
+        <div class="brand-row">
+          <select id="templateSelect" style="flex:1;">
+            <option value="">No template</option>
+          </select>
+          <button id="saveAsTemplate" class="mini">Save as Template</button>
+        </div>
+        <div class="brand-row">
+          <select id="brandPresetSelect" style="flex:1;">
+            <option value="">Default brand</option>
+          </select>
+          <button id="manageBrands" class="mini">Manage Brands</button>
+        </div>
+        <div class="brand-row">
+          <label>Variations:</label>
+          <select id="variationCount" style="width:60px;">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </div>
         <div class="grid">
           <label>Voice
             <select id="voice">
@@ -91,6 +117,13 @@
       </section>
 
       <section id="results" class="results" hidden>
+        <div id="variationSelector" class="variation-selector" style="display:none;">
+          <label>Choose variation:</label>
+          <select id="currentVariation">
+            <option value="0">Variation 1</option>
+          </select>
+        </div>
+        
         <div class="tabs">
           <button data-tab="mls" class="active">MLS Description <small id="charCount"></small></button>
           <button data-tab="bullets">Highlights</button>
@@ -115,8 +148,63 @@
         </div>
 
         <div id="flags" class="flags"></div>
+        
+        <div id="feedback" class="feedback" style="display:none;">
+          <h3>Rate this result:</h3>
+          <div class="rating">
+            <span data-rating="1">⭐</span>
+            <span data-rating="2">⭐</span>
+            <span data-rating="3">⭐</span>
+            <span data-rating="4">⭐</span>
+            <span data-rating="5">⭐</span>
+          </div>
+          <textarea id="feedbackText" placeholder="Optional feedback..." rows="2"></textarea>
+          <button id="submitFeedback" class="mini">Submit Feedback</button>
+        </div>
+        
         <div class="row end"><button id="btnEmail">Email me the package</button> <button id="btnPdf">Download PDF</button></div>
       </section>
+    </section>
+
+    <!-- TEMPLATES -->
+    <section id="view-templates" class="view">
+      <h2>Property Templates</h2>
+      <p class="muted">Save property configurations as reusable templates.</p>
+      <div class="template-actions">
+        <button id="createTemplate" class="primary">Create New Template</button>
+      </div>
+      <div id="templatesList" class="cards-grid"></div>
+    </section>
+
+    <!-- BRAND SETTINGS -->
+    <section id="view-brands" class="view">
+      <h2>Brand Settings</h2>
+      <p class="muted">Manage your brand presets for consistent messaging.</p>
+      <div class="brand-actions">
+        <button id="createBrand" class="primary">Create New Brand</button>
+      </div>
+      <div id="brandsList" class="cards-grid"></div>
+    </section>
+
+    <!-- BATCH PROCESSING -->
+    <section id="view-batch" class="view">
+      <h2>Batch Processing</h2>
+      <p class="muted">Process multiple properties at once. <span class="pro-badge">Pro only</span></p>
+      <div class="batch-upload">
+        <input type="file" id="batchFileInput" accept=".csv,.json" style="display:none;">
+        <button id="uploadBatch">Upload Properties (CSV/JSON)</button>
+        <div class="upload-help">
+          <small>Format: address, type, beds, baths, sqft, highlights...</small>
+        </div>
+      </div>
+      <div id="batchJobs" class="batch-jobs"></div>
+    </section>
+
+    <!-- ANALYTICS -->
+    <section id="view-analytics" class="view">
+      <h2>Analytics Dashboard</h2>
+      <p class="muted">Track your usage and performance. <span class="pro-badge">Pro only</span></p>
+      <div id="analyticsContent" class="analytics-dashboard"></div>
     </section>
 
     <!-- HISTORY -->
@@ -128,6 +216,34 @@
 
     <!-- BILLING & USAGE -->
     <section id="view-billing" class="view">
+      <h2>Subscription Plans</h2>
+      <div class="subscription-cards">
+        <div class="plan-card basic">
+          <h3>Basic</h3>
+          <div class="price">Free</div>
+          <ul>
+            <li>1 brand preset</li>
+            <li>5 templates</li>
+            <li>Standard generation</li>
+            <li>Basic support</li>
+          </ul>
+          <button id="selectBasic" class="current-plan" disabled>Current Plan</button>
+        </div>
+        <div class="plan-card pro">
+          <h3>Pro</h3>
+          <div class="price">$29/mo</div>
+          <ul>
+            <li>5 brand presets</li>
+            <li>20 templates</li>
+            <li>AI learning</li>
+            <li>Batch processing</li>
+            <li>Analytics dashboard</li>
+            <li>Priority support</li>
+          </ul>
+          <button id="selectPro">Upgrade to Pro</button>
+        </div>
+      </div>
+
       <h2>Buy Credits</h2>
       <p>Select a pack and you’ll be redirected to Stripe Checkout.</p>
       <div class="grid grid-3">
@@ -168,6 +284,68 @@
     </form>
   </dialog>
 
-  <script src="/app.js"></script>
+  <!-- Brand Modal -->
+  <dialog id="brandModal">
+    <form method="dialog" id="brandForm" class="modal-form">
+      <h3 id="brandModalTitle">Create Brand Preset</h3>
+      <input type="hidden" id="brandId" />
+      <label>Brand Name <input id="brandName" required /></label>
+      <label>Company Name <input id="companyName" /></label>
+      <label>Agent Name <input id="agentName" /></label>
+      <label>Phone <input id="brandPhone" type="tel" /></label>
+      <label>Email Signature <textarea id="emailSignature" rows="3"></textarea></label>
+      <label>Custom Disclaimers <textarea id="customDisclaimers" rows="2"></textarea></label>
+      <label>Specializations <input id="specializations" placeholder="Luxury homes, Investment properties" /></label>
+      <label>Voice
+        <select id="brandVoice">
+          <option value="neutral">Neutral</option>
+          <option value="conversational">Conversational</option>
+          <option value="luxury">Luxury</option>
+          <option value="investor">Investor-friendly</option>
+        </select>
+      </label>
+      <label>Reading Level
+        <select id="brandReading">
+          <option value="standard">Standard</option>
+          <option value="simple">Simple</option>
+        </select>
+      </label>
+      <label>Keywords <input id="brandKeywords" placeholder="South Austin, cul-de-sac" /></label>
+      <label class="toggle">
+        <input type="checkbox" id="isDefault" />
+        Make this the default brand
+      </label>
+      <div class="row">
+        <button value="cancel">Cancel</button>
+        <button id="saveBrand">Save Brand</button>
+      </div>
+      <div class="error" id="brandError" hidden></div>
+    </form>
+  </dialog>
+
+  <!-- Template Modal -->
+  <dialog id="templateModal">
+    <form method="dialog" id="templateForm" class="modal-form">
+      <h3 id="templateModalTitle">Create Template</h3>
+      <input type="hidden" id="templateId" />
+      <label>Template Name <input id="templateName" required /></label>
+      <label>Description <input id="templateDescription" /></label>
+      <label>Property Type
+        <select id="templateType">
+          <option value="single_family">Single-family</option>
+          <option value="condo">Condo</option>
+          <option value="multi_family">Multi-family</option>
+          <option value="land">Land</option>
+        </select>
+      </label>
+      <div class="row">
+        <button value="cancel">Cancel</button>
+        <button id="saveTemplate">Save Template</button>
+      </div>
+      <div class="error" id="templateError" hidden></div>
+    </form>
+  </dialog>
+
+  <script src="/app-enhanced.js"></script>
 </body>
 </html>

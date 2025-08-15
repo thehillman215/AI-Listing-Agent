@@ -187,7 +187,6 @@ app.post("/mls/fetch", async (req, res) => {
   if (mls_number !== "TEST123") return res.status(404).json({ error: "Not found" });
   res.json({ record: TEST123 });
 });
-});
 
 app.get("/history", async (req, res) => {
   const email = req.session?.user?.email || null;

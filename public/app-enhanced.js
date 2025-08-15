@@ -866,11 +866,19 @@ async function loadHistory() {
     
     data.items?.forEach(item => {
       const li = document.createElement("li");
-      li.innerHTML = `
-        <strong>${new Date(item.created_at).toLocaleDateString()}</strong>
-        <br>
-        ${item.output?.description_mls?.substring(0, 100)}...
-      `;
+      
+      const dateStrong = document.createElement("strong");
+      dateStrong.textContent = new Date(item.created_at).toLocaleDateString();
+      
+      const br = document.createElement("br");
+      
+      const descriptionText = document.createTextNode(
+        (item.output?.description_mls?.substring(0, 100) || "") + "..."
+      );
+      
+      li.appendChild(dateStrong);
+      li.appendChild(br);
+      li.appendChild(descriptionText);
       list.appendChild(li);
     });
   } catch (err) {
@@ -894,10 +902,16 @@ async function loadUsage() {
     
     data.events?.forEach(event => {
       const li = document.createElement("li");
-      li.innerHTML = `
-        <strong>+${event.credits_added} credits</strong> 
-        ${new Date(event.created_at).toLocaleDateString()}
-      `;
+      
+      const creditsStrong = document.createElement("strong");
+      creditsStrong.textContent = `+${event.credits_added} credits`;
+      
+      const dateText = document.createTextNode(
+        ` ${new Date(event.created_at).toLocaleDateString()}`
+      );
+      
+      li.appendChild(creditsStrong);
+      li.appendChild(dateText);
       eventsList.appendChild(li);
     });
   } catch (err) {

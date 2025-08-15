@@ -22,3 +22,6 @@ args = "npm run init:db"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm start"
+
+[deployment]
+deploymentTarget = "cloudrun"

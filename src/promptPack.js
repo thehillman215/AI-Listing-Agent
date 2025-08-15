@@ -1,7 +1,16 @@
-export function buildSystemPrompt() {
+export function buildSystemPrompt(learningContext = {}) {
+  let basePrompt = "You are a professional US real estate listing copywriter. Write concise, accurate copy with neutral tone. Avoid prohibited Fair Housing language (no references to protected classes, perceived safety, or ideal occupants). Do not invent facts. Respect provided length limits. Return only JSON in the specified schema.";
+  
+  if (learningContext?.successful_patterns?.length > 0) {
+    basePrompt += `\n\nLearning Context: Based on previous successful listings, these patterns received high ratings:\n${
+      learningContext.successful_patterns.map(p => 
+        `Rating ${p.rating}/5: Used ${p.input.style?.voice || 'neutral'} voice for ${p.input.property?.type || 'property'} - successful elements: ${p.output.bullets?.slice(0,2).join(', ') || 'effective messaging'}`
+      ).join('\n')
+    }\nIncorporate successful patterns while maintaining originality.`;
+  }
+  
   return [
-    { role: "system", content:
-      "You are a professional US real estate listing copywriter. Write concise, accurate copy with neutral tone. Avoid prohibited Fair Housing language (no references to protected classes, perceived safety, or ideal occupants). Do not invent facts. Respect provided length limits. Return only JSON in the specified schema." }
+    { role: "system", content: basePrompt }
   ];
 }
 

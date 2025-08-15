@@ -514,22 +514,58 @@ function renderBatchJobs(jobs) {
   jobs.forEach(job => {
     const div = document.createElement("div");
     div.className = "batch-job";
-    div.innerHTML = `
-      <div class="job-header">
-        <h4>Batch Job ${job.id.substr(-8)}</h4>
-        <span class="status ${job.status}">${job.status}</span>
-      </div>
-      <div class="progress">
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: ${(job.completed / job.total) * 100}%"></div>
-        </div>
-        <span>${job.completed}/${job.total} completed</span>
-      </div>
-      <div class="job-actions">
-        <button onclick="viewBatchJob('${job.id}')">View Details</button>
-        <small>${new Date(job.created_at).toLocaleDateString()}</small>
-      </div>
-    `;
+    
+    // Job header
+    const jobHeader = document.createElement("div");
+    jobHeader.className = "job-header";
+    
+    const jobTitle = document.createElement("h4");
+    jobTitle.textContent = `Batch Job ${job.id.substr(-8)}`;
+    
+    const statusSpan = document.createElement("span");
+    statusSpan.className = `status ${job.status}`;
+    statusSpan.textContent = job.status;
+    
+    jobHeader.appendChild(jobTitle);
+    jobHeader.appendChild(statusSpan);
+    
+    // Progress section
+    const progressDiv = document.createElement("div");
+    progressDiv.className = "progress";
+    
+    const progressBar = document.createElement("div");
+    progressBar.className = "progress-bar";
+    
+    const progressFill = document.createElement("div");
+    progressFill.className = "progress-fill";
+    progressFill.style.width = `${(job.completed / job.total) * 100}%`;
+    
+    const progressText = document.createElement("span");
+    progressText.textContent = `${job.completed}/${job.total} completed`;
+    
+    progressBar.appendChild(progressFill);
+    progressDiv.appendChild(progressBar);
+    progressDiv.appendChild(progressText);
+    
+    // Job actions
+    const actionsDiv = document.createElement("div");
+    actionsDiv.className = "job-actions";
+    
+    const viewButton = document.createElement("button");
+    viewButton.textContent = "View Details";
+    viewButton.addEventListener('click', () => viewBatchJob(job.id));
+    
+    const dateSmall = document.createElement("small");
+    dateSmall.textContent = new Date(job.created_at).toLocaleDateString();
+    
+    actionsDiv.appendChild(viewButton);
+    actionsDiv.appendChild(dateSmall);
+    
+    // Assemble the complete element
+    div.appendChild(jobHeader);
+    div.appendChild(progressDiv);
+    div.appendChild(actionsDiv);
+    
     container.appendChild(div);
   });
 }

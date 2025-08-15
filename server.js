@@ -154,7 +154,7 @@ app.get("/credits", (req, res) => {
   const email = req.session?.user?.email || null;
   const c = email ? getCredits(email) : null;
   res.json({ credits: c });
-
+});
 
 function mlsEnabled() { return String(process.env.MLS_SANDBOX_ENABLED || "false") === "true"; }
 app.get("/mls/providers", (req, res) => {
@@ -278,4 +278,7 @@ function escapeHtml(s) {
 app.get("/health", (req, res) => res.json({ ok: true }));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0", () => console.log(`AI Listing Agent v1.1 on http://0.0.0.0:${PORT}`));
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`AI Listing Agent v1.3 on http://0.0.0.0:${PORT}`);
+  console.log(`Health check: http://0.0.0.0:${PORT}/health`);
+});

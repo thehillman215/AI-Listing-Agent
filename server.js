@@ -52,22 +52,6 @@ import { analyzeImages } from "./src/vision/index.js";
 dotenv.config();
 const app = express();
 
-// FAST health checks — must be before any auth/redirects
-// Some platforms only hit "/" — make it fast too
-// Stripe webhook must use raw body
-app.post(
-  "/stripe/webhook",
-  express.raw({ type: "application/json" }),
-  async (req, res) => {
-    try {
-      const sig = req.headers["stripe-signature"];
-      const event = await handleWebhook(req.body, sig);
-
-// FAST health checks — must be before any auth/redirects
-/* FAST health checks */
-app.get("/health", (req, res) => res.status(200).type("text/plain").send("ok"));
-app.get("/", (req, res) => res.status(200).type("text/plain").send("ok"));
-
       // record event into db if credits added (billing.js handles users table updates)
       res.json(event);
     } catch (err) {

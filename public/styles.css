@@ -579,7 +579,8 @@ footer {
   margin: 0;
 }
 
-.status {
+/* Scope status badges to batch-job so they don't override the general .status text */
+.batch-job .status {
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -587,10 +588,10 @@ footer {
   text-transform: uppercase;
 }
 
-.status.pending { background: var(--warning); color: white; }
-.status.processing { background: var(--accent); color: white; }
-.status.completed { background: var(--success); color: white; }
-.status.failed { background: var(--danger); color: white; }
+.batch-job .status.pending { background: var(--warning); color: white; }
+.batch-job .status.processing { background: var(--accent); color: white; }
+.batch-job .status.completed { background: var(--success); color: white; }
+.batch-job .status.failed { background: var(--danger); color: white; }
 
 .progress {
   display: flex;
@@ -810,3 +811,8 @@ footer {
   .analytics-cards { grid-template-columns: repeat(2, 1fr); }
   .variation-selector { flex-direction: column; align-items: stretch; }
 }
+
+/* Tooltips + Usage empty (from main) */
+.tip { cursor: help; display:inline-block; border:1px solid #2a2f36; border-radius:50%; width:18px; height:18px; line-height:16px; text-align:center; font-size:12px; color: var(--muted); }
+.usage-empty { color: var(--muted); }
+

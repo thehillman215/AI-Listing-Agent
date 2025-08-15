@@ -13,6 +13,8 @@ import { getAdminAnalytics, getUserAnalyticsData } from "./src/analyticsService.
 import { renderPdfBuffer } from "./src/export.js";
 import { sendResultsEmail } from "./src/email.js";
 
+import { photosUpload } from "./src/middleware/upload.js";
+import { analyzeImages } from "./src/vision/index.js";
 dotenv.config();
 const app = express();
 
@@ -43,6 +45,20 @@ app.use(cookieSession({
 // JSON parser for the rest
 app.use(express.json({ limit: "1mb" }));
 
+
+const photoLimiter = rateLimit({ windowMs: 60 * 1000, max: 5 });
+app.post("/photos/analyze", photoLimiter, photosUpload, async (req, res) => {
+  try {
+    const enabled = String(process.env.USE_PHOTO_FACTS || "false") === "true";
+    if (!enabled) return res.status(400).json({ error: "Photo analysis disabled. Set USE_PHOTO_FACTS=true." });
+    const email = req.session?.user?.email || null;
+    if (!email) return res.status(401).json({ error: "Login required" });
+    const files = req.files || [];
+    if (!files.length) return res.status(400).json({ error: "No images uploaded" });
+    const results = await analyzeImages(files);
+    res.json(results);
+  } catch (e) { res.status(400).json({ error: String(e) }); }
+});
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, "public")));

@@ -585,38 +585,107 @@ async function loadAnalytics() {
 
 function renderAnalytics(data) {
   const container = $("#analyticsContent");
-  container.innerHTML = `
-    <div class="analytics-cards">
-      <div class="metric-card">
-        <h3>Generation History</h3>
-        <div class="metric">${data.generationHistory?.length || 0}</div>
-        <p class="muted">Total generations</p>
-      </div>
-      <div class="metric-card">
-        <h3>Average Rating</h3>
-        <div class="metric">${(data.feedbackStats?.avg_rating || 0).toFixed(1)}</div>
-        <p class="muted">Out of 5 stars</p>
-      </div>
-      <div class="metric-card">
-        <h3>Templates Created</h3>
-        <div class="metric">${data.templateUsage?.length || 0}</div>
-        <p class="muted">Active templates</p>
-      </div>
-    </div>
-    <div class="analytics-charts">
-      <div class="chart-section">
-        <h3>Monthly Usage</h3>
-        <div class="simple-chart">
-          ${data.monthlyUsage?.map(month => `
-            <div class="chart-bar">
-              <div class="bar" style="height: ${Math.min(month.generations * 10, 100)}px;"></div>
-              <span class="chart-label">${month.month}</span>
-            </div>
-          `).join('') || '<p class="muted">No data yet</p>'}
-        </div>
-      </div>
-    </div>
-  `;
+  
+  // Clear container safely
+  container.textContent = '';
+  
+  // Create analytics cards section
+  const cardsDiv = document.createElement('div');
+  cardsDiv.className = 'analytics-cards';
+  
+  // Generation History card
+  const historyCard = document.createElement('div');
+  historyCard.className = 'metric-card';
+  const historyTitle = document.createElement('h3');
+  historyTitle.textContent = 'Generation History';
+  const historyMetric = document.createElement('div');
+  historyMetric.className = 'metric';
+  historyMetric.textContent = String(data.generationHistory?.length || 0);
+  const historyDesc = document.createElement('p');
+  historyDesc.className = 'muted';
+  historyDesc.textContent = 'Total generations';
+  historyCard.appendChild(historyTitle);
+  historyCard.appendChild(historyMetric);
+  historyCard.appendChild(historyDesc);
+  
+  // Average Rating card
+  const ratingCard = document.createElement('div');
+  ratingCard.className = 'metric-card';
+  const ratingTitle = document.createElement('h3');
+  ratingTitle.textContent = 'Average Rating';
+  const ratingMetric = document.createElement('div');
+  ratingMetric.className = 'metric';
+  ratingMetric.textContent = String((data.feedbackStats?.avg_rating || 0).toFixed(1));
+  const ratingDesc = document.createElement('p');
+  ratingDesc.className = 'muted';
+  ratingDesc.textContent = 'Out of 5 stars';
+  ratingCard.appendChild(ratingTitle);
+  ratingCard.appendChild(ratingMetric);
+  ratingCard.appendChild(ratingDesc);
+  
+  // Templates Created card
+  const templatesCard = document.createElement('div');
+  templatesCard.className = 'metric-card';
+  const templatesTitle = document.createElement('h3');
+  templatesTitle.textContent = 'Templates Created';
+  const templatesMetric = document.createElement('div');
+  templatesMetric.className = 'metric';
+  templatesMetric.textContent = String(data.templateUsage?.length || 0);
+  const templatesDesc = document.createElement('p');
+  templatesDesc.className = 'muted';
+  templatesDesc.textContent = 'Active templates';
+  templatesCard.appendChild(templatesTitle);
+  templatesCard.appendChild(templatesMetric);
+  templatesCard.appendChild(templatesDesc);
+  
+  cardsDiv.appendChild(historyCard);
+  cardsDiv.appendChild(ratingCard);
+  cardsDiv.appendChild(templatesCard);
+  
+  // Create charts section
+  const chartsDiv = document.createElement('div');
+  chartsDiv.className = 'analytics-charts';
+  
+  const chartSection = document.createElement('div');
+  chartSection.className = 'chart-section';
+  
+  const chartTitle = document.createElement('h3');
+  chartTitle.textContent = 'Monthly Usage';
+  
+  const simpleChart = document.createElement('div');
+  simpleChart.className = 'simple-chart';
+  
+  if (data.monthlyUsage && data.monthlyUsage.length > 0) {
+    data.monthlyUsage.forEach(month => {
+      const chartBar = document.createElement('div');
+      chartBar.className = 'chart-bar';
+      
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      bar.style.height = `${Math.min(month.generations * 10, 100)}px`;
+      
+      const label = document.createElement('span');
+      label.className = 'chart-label';
+      label.textContent = String(month.month); // Safe text content
+      
+      chartBar.appendChild(bar);
+      chartBar.appendChild(label);
+      simpleChart.appendChild(chartBar);
+    });
+  } else {
+    const noData = document.createElement('p');
+    noData.className = 'muted';
+    noData.textContent = 'No data yet';
+    simpleChart.appendChild(noData);
+  }
+  
+  chartSection.appendChild(chartTitle);
+  chartSection.appendChild(simpleChart);
+  chartsDiv.appendChild(chartSection);
+  
+  // Assemble everything
+  container.appendChild(cardsDiv);
+  container.appendChild(chartsDiv);
 }
 
 // Event Listeners Setup

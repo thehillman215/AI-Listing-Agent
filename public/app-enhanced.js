@@ -9,11 +9,34 @@ let currentJobId = null;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
+  initializeTheme();
   refreshMe();
   loadTemplates();
   loadBrands();
   setupEventListeners();
 });
+
+// Theme management
+function initializeTheme() {
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  updateThemeToggle(savedTheme);
+}
+
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+  const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+  
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  updateThemeToggle(newTheme);
+}
+
+function updateThemeToggle(theme) {
+  const toggle = $("#themeToggle");
+  toggle.textContent = theme === 'light' ? '🌙' : '☀️';
+  toggle.title = theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode';
+}
 
 // NAV
 $$(".nav-btn").forEach(btn => btn.addEventListener("click", (e) => {
@@ -487,6 +510,9 @@ function renderAnalytics(data) {
 
 // Event Listeners Setup
 function setupEventListeners() {
+  // Theme toggle
+  $("#themeToggle").addEventListener("click", toggleTheme);
+  
   // Template actions
   $("#createTemplate").addEventListener("click", () => openTemplateModal());
   $("#saveAsTemplate").addEventListener("click", () => saveAsTemplate());

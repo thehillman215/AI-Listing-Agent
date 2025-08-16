@@ -1,0 +1,65 @@
+We’re deploying a Next.js app to Vercel. Hitting /api/health and /api/stripe/create-checkout-session on the preview domain returns FUNCTION_INVOCATION_FAILED (500) before our handler runs. Please audit and fix API routing so these endpoints work on Vercel, then keep Stripe disabled via an env flag.
+
+Context:
+
+Framework: Next.js (likely "type": "module" in package.json).
+
+Host: Vercel (Preview domain like https://realtor-quill-...vercel.app).
+
+We flipped between root /api/* and pages/api/*. Vercel treats this as a Next.js project, so root /api/* may be ignored.
+
+Stripe must remain TEST mode and disabled for now with PAYMENTS_ENABLED=0. No PAYMENTS_SECRET set. Preview Protection was enabled earlier but should be off now.
+
+What to do:
+
+Identify routing/runtime conflicts on Vercel:
+
+Confirm we are using only pages/api/* (remove any root /api folder).
+
+Check for a vercel.json that rewrites to Edge or interferes with pages/api/*; disable if so.
+
+Check for middleware.(js|ts) at repo root that matches all routes; temporarily disable if it affects /api/*.
+
+Ensure there’s no custom server.js trying to run on Vercel.
+
+Standardize API routes as Next.js pages/api/* using ESM imports/exports (to match "type": "module"). Handlers:
+
+/api/health → returns 200 JSON (simple ok:true).
+
+/api/stripe/create-checkout-session → POST-only; with PAYMENTS_ENABLED=0 it should return 503 with a short JSON error.
+
+/api/stripe/webhook → uses raw body (Next config api.bodyParser=false), and when disabled it should 200 OK and log that it ignored the event.
+
+Verify environment on Vercel (Preview and Prod):
+
+PAYMENTS_ENABLED=0 (required)
+
+Stripe keys can be present but the route must not run when disabled.
+
+Dependencies & module format:
+
+Ensure stripe@^14 is installed and committed.
+
+Keep files ESM (no require/module.exports) to avoid runtime crashes.
+
+Validation on the Vercel preview:
+
+GET /api/health → 200 JSON.
+
+POST /api/stripe/create-checkout-session with a small JSON body → 503 JSON (because payments disabled).
+
+Send a Stripe test event to /api/stripe/webhook → 200 OK and logs “payments_disabled”.
+
+If Preview Protection reappears, use a bypass token header or make previews public.
+
+Acceptance criteria (must all pass on Vercel):
+
+No more FUNCTION_INVOCATION_FAILED for the three routes.
+
+/api/health returns 200 with ok:true.
+
+Checkout route returns 503 while PAYMENTS_ENABLED=0 (and 405 on non-POST).
+
+Webhook returns 200 and does not process while disabled.
+
+You explain exactly what was changed (files/configs) and why, and provide the minimal steps you used to validate.

@@ -1,0 +1,14 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "devCommand": "next dev --port $PORT",
+  "installCommand": "npm install",
+  "env": {
+    "PAYMENTS_ENABLED": "0"
+  },
+  "functions": {
+    "pages/api/**/*.js": {
+      "maxDuration": 30
+    }
+  }
+}

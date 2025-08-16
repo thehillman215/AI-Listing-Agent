@@ -18,8 +18,11 @@
     "express-rate-limit": "^7.5.1",
     "helmet": "^7.2.0",
     "multer": "^2.0.2",
+    "next": "^15.4.6",
     "openai": "^4.104.0",
     "pdfkit": "^0.13.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
     "resend": "^4.8.0",
     "stripe": "^16.12.0",
     "zod": "^3.25.76"

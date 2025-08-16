@@ -32,6 +32,14 @@ This is a complete AI-powered real estate listing description generator that hel
 
 Preferred communication style: Simple, everyday language.
 
+## Migration Status - Next.js for Vercel (August 16, 2025)
+- ✅ **Express to Next.js Migration Complete**: Successfully converted for Vercel deployment
+- ✅ **API Routes Restructured**: pages/api/health, pages/api/stripe/create-checkout-session, pages/api/stripe/webhook
+- ✅ **Payment System Disabled**: PAYMENTS_ENABLED=0 flag controls Stripe functionality
+- ✅ **Conflict Resolution**: Removed root /api folder, moved server.js to backup
+- ✅ **Validation Ready**: All endpoints tested and returning correct status codes
+- ✅ **Vercel Configuration**: Added next.config.js, vercel.json, and deployment files
+
 ## System Architecture
 
 ### Frontend Architecture
@@ -121,6 +129,13 @@ Preferred communication style: Simple, everyday language.
   - loadHistory() function - historical data display
   - All fixes use createElement() + appendChild() + textContent pattern (August 15, 2025)
 - **✅ Verification Script**: Added deployment verification script for testing
+- **✅ Next.js Migration for Vercel**: Converted Express app to Next.js API routes structure
+  - Created pages/api/health.js with 200 JSON response
+  - Created pages/api/stripe/create-checkout-session.js with PAYMENTS_ENABLED=0 check (returns 503)
+  - Created pages/api/stripe/webhook.js with disabled payments logging
+  - Removed conflicting root /api folder
+  - Moved server.js to server-express.js.backup to avoid conflicts
+  - Added Next.js configuration and Vercel deployment setup
 
 ### Deployment Files
 - `replit.toml`: Primary deployment configuration with autoscale target

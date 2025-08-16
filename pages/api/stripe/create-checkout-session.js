@@ -4,7 +4,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'method_not_allowed' });
   }
 
-  // Kill-switch (keep Vercel env set to PAYMENTS_ENABLED=0)
+  // Kill-switch (keep Vercel env set to PAYMENTS_ENABLED=0 for now)
   if (process.env.PAYMENTS_ENABLED !== '1') {
     console.log('[stripe][checkout] payments_disabled');
     return res.status(503).json({ ok: false, error: 'payments_disabled' });

@@ -1,6 +1,7 @@
-export const config = { runtime: "nodejs20.x" };
-
 import Stripe from "stripe";
+
+// Next.js API route: disable body parsing so we can verify Stripe signature
+export const config = { api: { bodyParser: false } };
 
 function getRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -12,24 +13,21 @@ function getRawBody(req) {
 }
 
 export default async function handler(req, res) {
-  // Keep GET/others for quick diagnostics
+  // Allow non-POST for quick diagnostics
   if (req.method !== "POST") {
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/json");
     return res.end(JSON.stringify({ ok: true, method: req.method }));
   }
 
-  // Kill-switch: acknowledge but ignore so Stripe doesn’t retry
+  // Kill-switch: acknowledge but ignore to stop retries
   if (process.env.PAYMENTS_ENABLED !== "1") {
     console.log("⚠️ Webhook received while payments are disabled");
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/json");
-    return res.end(
-      JSON.stringify({ ignored: true, reason: "payments_disabled" }),
-    );
+    return res.end(JSON.stringify({ ignored: true, reason: "payments_disabled" }));
   }
 
-  // Require configuration only when enabled
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!endpointSecret) {
     res.statusCode = 500;
@@ -57,10 +55,8 @@ export default async function handler(req, res) {
     switch (event.type) {
       case "checkout.session.completed": {
         const s = event.data.object;
-        // TODO: later — fulfill idempotently by event.id
-        console.log(
-          `✅ (ready) checkout.session.completed id=${s.id} pack=${s.metadata?.pack}`,
-        );
+        // TODO: later — idempotent fulfillment by event.id
+        console.log(`✅ (ready) checkout.session.completed id=${s.id} pack=${s.metadata?.pack}`);
         break;
       }
       default:

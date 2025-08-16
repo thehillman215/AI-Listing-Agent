@@ -1,5 +1,3 @@
-export const config = { runtime: "nodejs20.x" };
-
 export default function handler(req, res) {
   const { paid, ...q } = req.query || {};
   res.statusCode = 200;

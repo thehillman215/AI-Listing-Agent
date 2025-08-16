@@ -1,4 +1,4 @@
-const Stripe = require("stripe");
+import Stripe from "stripe";
 
 const PRICE_MAP = {
   10: process.env.STRIPE_PRICE_10,
@@ -13,7 +13,7 @@ function getOrigin(req) {
   return `${proto}://${host}`;
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // Kill-switch: block creating sessions until we're ready
   if (process.env.PAYMENTS_ENABLED !== "1") {
     res.statusCode = 503;
@@ -51,7 +51,7 @@ module.exports = async (req, res) => {
   const stripe = new Stripe(key);
 
   try {
-    // Accept JSON body or query; default to "20"
+    // Accept from JSON body (if you add a parser later) or query; default to "20"
     const pack = String(
       (req.body && req.body.pack) || (req.query && req.query.pack) || "20",
     );
@@ -66,6 +66,7 @@ module.exports = async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [{ price, quantity: 1 }],
+      // keep health for now; later swap to /checkout/success.html
       success_url: `${origin}/api/health?paid=1&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout/canceled.html`,
       metadata: { pack },
@@ -79,4 +80,4 @@ module.exports = async (req, res) => {
     res.setHeader("Content-Type", "application/json");
     res.end(JSON.stringify({ error: "Internal error creating session" }));
   }
-};
+}

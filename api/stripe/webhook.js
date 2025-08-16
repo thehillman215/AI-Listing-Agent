@@ -1,4 +1,4 @@
-const Stripe = require("stripe");
+import Stripe from "stripe";
 
 function getRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -9,7 +9,7 @@ function getRawBody(req) {
   });
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // Keep GET/others for quick diagnostics
   if (req.method !== "POST") {
     res.statusCode = 200;
@@ -73,4 +73,4 @@ module.exports = async (req, res) => {
     res.setHeader("Content-Type", "application/json");
     res.end(JSON.stringify({ error: "Webhook handler error" }));
   }
-};
+}

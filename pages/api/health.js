@@ -5,6 +5,6 @@ export default function handler(req, res) {
     service: "health",
     paid: paid === "1",
     time: new Date().toISOString(),
-    query: q,
+    query: q
   });
 }

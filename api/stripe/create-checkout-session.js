@@ -1,3 +1,5 @@
+export const config = { runtime: "nodejs20.x" };
+
 import Stripe from "stripe";
 
 const PRICE_MAP = {

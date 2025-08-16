@@ -1,3 +1,5 @@
+export const config = { runtime: "nodejs20.x" };
+
 import Stripe from "stripe";
 
 function getRawBody(req) {

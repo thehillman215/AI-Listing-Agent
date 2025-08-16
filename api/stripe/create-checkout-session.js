@@ -1,5 +1,4 @@
 const Stripe = require("stripe");
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const PRICE_MAP = {
   10: process.env.STRIPE_PRICE_10,
@@ -15,7 +14,7 @@ function getOrigin(req) {
 }
 
 module.exports = async (req, res) => {
-  // Kill-switch: block creating sessions until we're ready for payments
+  // Kill-switch: block creating sessions until we're ready
   if (process.env.PAYMENTS_ENABLED !== "1") {
     res.statusCode = 503;
     res.setHeader("Content-Type", "application/json");
@@ -38,11 +37,24 @@ module.exports = async (req, res) => {
     return res.end(JSON.stringify({ error: "Unauthorized" }));
   }
 
+  // Lazy-init Stripe after checks
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    res.statusCode = 500;
+    res.setHeader("Content-Type", "application/json");
+    return res.end(
+      JSON.stringify({
+        error: "Stripe not configured: missing STRIPE_SECRET_KEY",
+      }),
+    );
+  }
+  const stripe = new Stripe(key);
+
   try {
-    // Accept from JSON body (preferred) or query as fallback
-    let pack =
-      (req.body && req.body.pack) || (req.query && req.query.pack) || "20";
-    pack = String(pack);
+    // Accept JSON body or query; default to "20"
+    const pack = String(
+      (req.body && req.body.pack) || (req.query && req.query.pack) || "20",
+    );
     const price = PRICE_MAP[pack];
     if (!price) {
       res.statusCode = 400;
@@ -54,7 +66,6 @@ module.exports = async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [{ price, quantity: 1 }],
-      // Keep success on health for now; swap to /checkout/success.html later
       success_url: `${origin}/api/health?paid=1&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout/canceled.html`,
       metadata: { pack },

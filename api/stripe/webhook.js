@@ -1,6 +1,4 @@
 const Stripe = require("stripe");
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 function getRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -29,6 +27,19 @@ module.exports = async (req, res) => {
     );
   }
 
+  // Require configuration only when enabled
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!endpointSecret) {
+    res.statusCode = 500;
+    return res.end("Webhook not configured: missing STRIPE_WEBHOOK_SECRET");
+  }
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    res.statusCode = 500;
+    return res.end("Webhook not configured: missing STRIPE_SECRET_KEY");
+  }
+  const stripe = new Stripe(key);
+
   let event;
   try {
     const rawBody = await getRawBody(req);
@@ -44,7 +55,7 @@ module.exports = async (req, res) => {
     switch (event.type) {
       case "checkout.session.completed": {
         const s = event.data.object;
-        // TODO: later—fulfill idempotently by event.id, grant credits/entitlements, send receipt
+        // TODO: later — fulfill idempotently by event.id
         console.log(
           `✅ (ready) checkout.session.completed id=${s.id} pack=${s.metadata?.pack}`,
         );

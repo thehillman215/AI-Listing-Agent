@@ -31,11 +31,12 @@ export default async function handler(req, res) {
 
     const baseUrl = getBaseUrl(req);
 
+    // inside handler(), when creating the session:
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [{ price, quantity: 1 }],
-      success_url: `${baseUrl}/?success=1`,
-      cancel_url: `${baseUrl}/?canceled=1`,
+      success_url: `${baseUrl}/checkout/success.html`,
+      cancel_url: `${baseUrl}/checkout/canceled.html`,
     });
 
     res.status(200).json({ url: session.url });

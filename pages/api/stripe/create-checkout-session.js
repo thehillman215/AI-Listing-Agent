@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ error: "Use POST" }));
   }
 
-  // Optional shared-secret
+  // Optional shared-secret header
   const required = process.env.PAYMENTS_SECRET;
   if (required && req.headers["x-payments-secret"] !== required) {
     res.statusCode = 401;
@@ -46,8 +46,7 @@ export default async function handler(req, res) {
   const stripe = new Stripe(key);
 
   try {
-    // Use JSON body if present; fallback to query; default "20"
-    const pack = String((req.body && req.body.pack) || (req.query && req.query.pack) || "20");
+    const pack = String((req.body?.pack ?? req.query?.pack ?? "20"));
     const price = PRICE_MAP[pack];
     if (!price) {
       res.statusCode = 400;
